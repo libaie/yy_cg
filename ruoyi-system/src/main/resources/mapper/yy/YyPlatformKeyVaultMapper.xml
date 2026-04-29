@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyPlatformKeyVaultMapper">
+    
+    <resultMap type="YyPlatformKeyVault" id="YyPlatformKeyVaultResult">
+        <result property="vaultId"    column="vault_id"    />
+        <result property="platformId"    column="platform_id"    />
+        <result property="symmetricKey"    column="symmetric_key"    />
+        <result property="symmetricIv"    column="symmetric_iv"    />
+        <result property="rsaPublicKey"    column="rsa_public_key"    />
+        <result property="rsaPrivateKey"    column="rsa_private_key"    />
+        <result property="appKey"    column="app_key"    />
+        <result property="appSecret"    column="app_secret"    />
+        <result property="remark"    column="remark"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectYyPlatformKeyVaultVo">
+        select vault_id, platform_id, symmetric_key, symmetric_iv, rsa_public_key, rsa_private_key, app_key, app_secret, remark, update_time from yy_platform_key_vault
+    </sql>
+
+    <select id="selectYyPlatformKeyVaultList" parameterType="YyPlatformKeyVault" resultMap="YyPlatformKeyVaultResult">
+        <include refid="selectYyPlatformKeyVaultVo"/>
+        <where>  
+            <if test="platformId != null "> and platform_id = #{platformId}</if>
+            <if test="symmetricKey != null  and symmetricKey != ''"> and symmetric_key = #{symmetricKey}</if>
+            <if test="symmetricIv != null  and symmetricIv != ''"> and symmetric_iv = #{symmetricIv}</if>
+            <if test="rsaPublicKey != null  and rsaPublicKey != ''"> and rsa_public_key = #{rsaPublicKey}</if>
+            <if test="rsaPrivateKey != null  and rsaPrivateKey != ''"> and rsa_private_key = #{rsaPrivateKey}</if>
+            <if test="appKey != null  and appKey != ''"> and app_key = #{appKey}</if>
+            <if test="appSecret != null  and appSecret != ''"> and app_secret = #{appSecret}</if>
+        </where>
+    </select>
+    
+    <select id="selectYyPlatformKeyVaultByVaultId" parameterType="Long" resultMap="YyPlatformKeyVaultResult">
+        <include refid="selectYyPlatformKeyVaultVo"/>
+        where vault_id = #{vaultId}
+    </select>
+
+    <select id="selectYyPlatformKeyVaultByPlatformId" parameterType="Long" resultMap="YyPlatformKeyVaultResult">
+        <include refid="selectYyPlatformKeyVaultVo"/>
+        where platform_id = #{platformId}
+        limit 1
+    </select>
+
+    <insert id="insertYyPlatformKeyVault" parameterType="YyPlatformKeyVault" useGeneratedKeys="true" keyProperty="vaultId">
+        insert into yy_platform_key_vault
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="platformId != null">platform_id,</if>
+            <if test="symmetricKey != null">symmetric_key,</if>
+            <if test="symmetricIv != null">symmetric_iv,</if>
+            <if test="rsaPublicKey != null">rsa_public_key,</if>
+            <if test="rsaPrivateKey != null">rsa_private_key,</if>
+            <if test="appKey != null">app_key,</if>
+            <if test="appSecret != null">app_secret,</if>
+            <if test="remark != null">remark,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="platformId != null">#{platformId},</if>
+            <if test="symmetricKey != null">#{symmetricKey},</if>
+            <if test="symmetricIv != null">#{symmetricIv},</if>
+            <if test="rsaPublicKey != null">#{rsaPublicKey},</if>
+            <if test="rsaPrivateKey != null">#{rsaPrivateKey},</if>
+            <if test="appKey != null">#{appKey},</if>
+            <if test="appSecret != null">#{appSecret},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateYyPlatformKeyVault" parameterType="YyPlatformKeyVault">
+        update yy_platform_key_vault
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="platformId != null">platform_id = #{platformId},</if>
+            <if test="symmetricKey != null">symmetric_key = #{symmetricKey},</if>
+            <if test="symmetricIv != null">symmetric_iv = #{symmetricIv},</if>
+            <if test="rsaPublicKey != null">rsa_public_key = #{rsaPublicKey},</if>
+            <if test="rsaPrivateKey != null">rsa_private_key = #{rsaPrivateKey},</if>
+            <if test="appKey != null">app_key = #{appKey},</if>
+            <if test="appSecret != null">app_secret = #{appSecret},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where vault_id = #{vaultId}
+    </update>
+
+    <delete id="deleteYyPlatformKeyVaultByVaultId" parameterType="Long">
+        delete from yy_platform_key_vault where vault_id = #{vaultId}
+    </delete>
+
+    <delete id="deleteYyPlatformKeyVaultByVaultIds" parameterType="String">
+        delete from yy_platform_key_vault where vault_id in 
+        <foreach item="vaultId" collection="array" open="(" separator="," close=")">
+            #{vaultId}
+        </foreach>
+    </delete>
+</mapper>

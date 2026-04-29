@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyPlatformActivityMapper">
+    
+    <resultMap type="com.ruoyi.yy.domain.YyPlatformActivity" id="YyPlatformActivityResult">
+        <result property="id" column="id"/>
+        <result property="platformCode" column="platform_code"/>
+        <result property="platformName" column="platform_name"/>
+        <result property="activityCode" column="activity_code"/>
+        <result property="activityName" column="activity_name"/>
+        <result property="activityType" column="activity_type"/>
+        <result property="activityDesc" column="activity_desc"/>
+        <result property="activityRules" column="activity_rules"/>
+        <result property="applyScope" column="apply_scope"/>
+        <result property="scopeValue" column="scope_value"/>
+        <result property="customerTypes" column="customer_types"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="isActive" column="is_active"/>
+        <result property="priority" column="priority"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+    
+    <sql id="selectYyPlatformActivityVo">
+        select id, platform_code, platform_name, activity_code, activity_name,
+               activity_type, activity_desc, activity_rules,
+               apply_scope, scope_value, customer_types,
+               start_time, end_time, is_active, priority,
+               created_by, created_at, updated_at
+        from yy_platform_activity
+    </sql>
+    
+    <select id="selectYyPlatformActivityById" parameterType="Long" resultMap="YyPlatformActivityResult">
+        <include refid="selectYyPlatformActivityVo"/>
+        where id = #{id}
+    </select>
+    
+    <select id="selectByCode" resultMap="YyPlatformActivityResult">
+        <include refid="selectYyPlatformActivityVo"/>
+        where platform_code = #{platformCode}
+          and activity_code = #{activityCode}
+    </select>
+    
+    <select id="selectAll" resultMap="YyPlatformActivityResult">
+        <include refid="selectYyPlatformActivityVo"/>
+        <where>
+            <if test="platformCode != null and platformCode != ''">and platform_code = #{platformCode}</if>
+        </where>
+        order by priority desc, start_time desc
+    </select>
+    
+    <select id="selectActive" resultMap="YyPlatformActivityResult">
+        <include refid="selectYyPlatformActivityVo"/>
+        <where>
+            is_active = 1
+            and start_time &lt;= NOW()
+            and end_time &gt;= NOW()
+            <if test="platformCode != null and platformCode != ''">and platform_code = #{platformCode}</if>
+        </where>
+        order by priority desc
+    </select>
+    
+    <select id="selectActiveByPlatformAndType" resultMap="YyPlatformActivityResult">
+        <include refid="selectYyPlatformActivityVo"/>
+        where is_active = 1
+          and start_time &lt;= NOW()
+          and end_time &gt;= NOW()
+          and platform_code = #{platformCode}
+          and activity_type = #{activityType}
+        order by priority desc
+    </select>
+    
+    <insert id="insertYyPlatformActivity" parameterType="com.ruoyi.yy.domain.YyPlatformActivity" useGeneratedKeys="true" keyProperty="id">
+        insert into yy_platform_activity (
+            platform_code, platform_name, activity_code, activity_name,
+            activity_type, activity_desc, activity_rules,
+            apply_scope, scope_value, customer_types,
+            start_time, end_time, is_active, priority, created_by
+        ) values (
+            #{platformCode}, #{platformName}, #{activityCode}, #{activityName},
+            #{activityType}, #{activityDesc}, #{activityRules},
+            #{applyScope}, #{scopeValue}, #{customerTypes},
+            #{startTime}, #{endTime}, #{isActive}, #{priority}, #{createdBy}
+        )
+    </insert>
+    
+    <update id="updateYyPlatformActivity" parameterType="com.ruoyi.yy.domain.YyPlatformActivity">
+        update yy_platform_activity
+        <set>
+            <if test="platformName != null">platform_name = #{platformName},</if>
+            <if test="activityName != null">activity_name = #{activityName},</if>
+            <if test="activityType != null">activity_type = #{activityType},</if>
+            <if test="activityDesc != null">activity_desc = #{activityDesc},</if>
+            <if test="activityRules != null">activity_rules = #{activityRules},</if>
+            <if test="applyScope != null">apply_scope = #{applyScope},</if>
+            <if test="scopeValue != null">scope_value = #{scopeValue},</if>
+            <if test="customerTypes != null">customer_types = #{customerTypes},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="isActive != null">is_active = #{isActive},</if>
+            <if test="priority != null">priority = #{priority},</if>
+        </set>
+        where id = #{id}
+    </update>
+    
+    <delete id="deleteYyPlatformActivityById" parameterType="Long">
+        delete from yy_platform_activity where id = #{id}
+    </delete>
+    
+    <delete id="deleteYyPlatformActivityByIds" parameterType="String">
+        delete from yy_platform_activity where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    
+</mapper>

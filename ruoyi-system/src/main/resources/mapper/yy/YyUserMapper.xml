@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyUserMapper">
+    
+    <resultMap type="YyUser" id="YyUserResult">
+        <result property="userId"    column="user_id"    />
+        <result property="phone"    column="phone"    />
+        <result property="password"    column="password"    />
+        <result property="nickName"    column="nick_name"    />
+        <result property="avatar"    column="avatar"    />
+        <result property="memberLevel"    column="member_level"    />
+        <result property="memberLevelId"    column="member_level_id"    />
+        <result property="memberExpireTime"    column="member_expire_time"    />
+        <result property="firstMemberTime"    column="first_member_time"    />
+        <result property="balance"    column="balance"    />
+        <result property="chatbotUrl"    column="chatbot_url"    />
+        <result property="inviteCode"    column="invite_code"    />
+        <result property="referrerCode"    column="referrer_code"    />
+        <result property="regTime"    column="reg_time"    />
+        <result property="lastPayTime"    column="last_pay_time"    />
+        <result property="createTime"    column="create_time"    />
+    </resultMap>
+
+    <sql id="selectYyUserVo">
+        select user_id, phone, nick_name, avatar, member_level, member_level_id, member_expire_time, first_member_time, balance, chatbot_url, invite_code, referrer_code, reg_time, last_pay_time, create_time from yy_user
+    </sql>
+
+    <select id="selectYyUserList" parameterType="YyUser" resultMap="YyUserResult">
+        <include refid="selectYyUserVo"/>
+        <where>  
+            <if test="phone != null  and phone != ''"> and phone = #{phone}</if>
+            <if test="memberLevel != null "> and member_level = #{memberLevel}</if>
+            <if test="memberExpireTime != null "> and member_expire_time = #{memberExpireTime}</if>
+            <if test="firstMemberTime != null "> and first_member_time = #{firstMemberTime}</if>
+            <if test="inviteCode != null  and inviteCode != ''"> and invite_code = #{inviteCode}</if>
+        </where>
+    </select>
+    
+    <select id="selectYyUserByUserId" parameterType="Long" resultMap="YyUserResult">
+        <include refid="selectYyUserVo"/>
+        where user_id = #{userId}
+    </select>
+
+    <select id="selectYyUserByPhone" parameterType="String" resultMap="YyUserResult">
+        <include refid="selectYyUserVo"/>
+        where phone = #{phone}
+    </select>
+
+    <sql id="selectYyUserWithPwd">
+        select user_id, phone, password, nick_name, avatar, member_level, member_level_id, member_expire_time, first_member_time, balance, chatbot_url, invite_code, referrer_code, reg_time, create_time from yy_user
+    </sql>
+
+    <select id="selectYyUserByPhoneWithPwd" parameterType="String" resultMap="YyUserResult">
+        <include refid="selectYyUserWithPwd"/>
+        where phone = #{phone}
+    </select>
+
+    <select id="selectYyUserByInviteCode" parameterType="String" resultMap="YyUserResult">
+        <include refid="selectYyUserVo"/>
+        where invite_code = #{inviteCode}
+    </select>
+
+    <select id="selectYyUserForUpdate" parameterType="Long" resultMap="YyUserResult">
+        <include refid="selectYyUserVo"/>
+        where user_id = #{userId} for update
+    </select>
+
+    <insert id="insertYyUser" parameterType="YyUser" useGeneratedKeys="true" keyProperty="userId">
+        insert into yy_user
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="phone != null and phone != ''">phone,</if>
+            <if test="password != null and password != ''">password,</if>
+            <if test="nickName != null">nick_name,</if>
+            <if test="avatar != null">avatar,</if>
+            <if test="memberLevel != null">member_level,</if>
+            <if test="memberLevelId != null">member_level_id,</if>
+            <if test="memberExpireTime != null">member_expire_time,</if>
+            <if test="firstMemberTime != null">first_member_time,</if>
+            <if test="balance != null">balance,</if>
+            <if test="chatbotUrl != null">chatbot_url,</if>
+            <if test="inviteCode != null">invite_code,</if>
+            <if test="referrerCode != null">referrer_code,</if>
+            <if test="regTime != null">reg_time,</if>
+            <if test="lastPayTime != null">last_pay_time,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="phone != null and phone != ''">#{phone},</if>
+            <if test="password != null and password != ''">#{password},</if>
+            <if test="nickName != null">#{nickName},</if>
+            <if test="avatar != null">#{avatar},</if>
+            <if test="memberLevel != null">#{memberLevel},</if>
+            <if test="memberLevelId != null">#{memberLevelId},</if>
+            <if test="memberExpireTime != null">#{memberExpireTime},</if>
+            <if test="firstMemberTime != null">#{firstMemberTime},</if>
+            <if test="balance != null">#{balance},</if>
+            <if test="chatbotUrl != null">#{chatbotUrl},</if>
+            <if test="inviteCode != null">#{inviteCode},</if>
+            <if test="referrerCode != null">#{referrerCode},</if>
+            <if test="regTime != null">#{regTime},</if>
+            <if test="lastPayTime != null">#{lastPayTime},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateYyUser" parameterType="YyUser">
+        update yy_user
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="phone != null and phone != ''">phone = #{phone},</if>
+            <if test="password != null and password != ''">password = #{password},</if>
+            <if test="nickName != null">nick_name = #{nickName},</if>
+            <if test="avatar != null">avatar = #{avatar},</if>
+            <if test="memberLevel != null">member_level = #{memberLevel},</if>
+            <if test="memberLevelId != null">member_level_id = #{memberLevelId},</if>
+            <if test="memberExpireTime != null">member_expire_time = #{memberExpireTime},</if>
+            <if test="firstMemberTime != null">first_member_time = #{firstMemberTime},</if>
+            <if test="balance != null">balance = #{balance},</if>
+            <if test="chatbotUrl != null">chatbot_url = #{chatbotUrl},</if>
+            <if test="inviteCode != null">invite_code = #{inviteCode},</if>
+            <if test="referrerCode != null">referrer_code = #{referrerCode},</if>
+            <if test="regTime != null">reg_time = #{regTime},</if>
+            <if test="lastPayTime != null">last_pay_time = #{lastPayTime},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </trim>
+        where user_id = #{userId}
+    </update>
+
+    <!-- 原子降级单个用户：仅到期的非普通会员才会被更新 -->
+    <update id="downgradeIfExpired">
+        update yy_user
+        set member_level = 0, member_level_id = null
+        where user_id = #{userId}
+          and member_level &gt; 0
+          and (member_expire_time is null or member_expire_time &lt; now())
+    </update>
+
+    <!-- 批量降级过期会员：将 member_expire_time < NOW() 且 member_level > 0 的用户重置为普通会员 -->
+    <update id="batchDowngradeExpiredMembers">
+        update yy_user
+        set member_level = 0, member_level_id = null
+        where member_level > 0
+          and member_expire_time is not null
+          and member_expire_time &lt; now()
+    </update>
+
+    <delete id="deleteYyUserByUserId" parameterType="Long">
+        delete from yy_user where user_id = #{userId}
+    </delete>
+
+    <delete id="deleteYyUserByUserIds" parameterType="String">
+        delete from yy_user where user_id in 
+        <foreach item="userId" collection="array" open="(" separator="," close=")">
+            #{userId}
+        </foreach>
+    </delete>
+
+    <!-- 原子增加用户余额 -->
+    <update id="incrementUserBalance">
+        update yy_user
+        set balance = IFNULL(balance, 0) + #{amount}
+        where user_id = #{userId}
+    </update>
+</mapper>

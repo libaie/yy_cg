@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyFieldMappingMapper">
+    
+    <resultMap type="YyFieldMapping" id="YyFieldMappingResult">
+        <result property="id"            column="id"              />
+        <result property="platformId"    column="platform_id"     />
+        <result property="standardField" column="standard_field"  />
+        <result property="platformField" column="platform_field"  />
+        <result property="fieldType"     column="field_type"      />
+        <result property="isRequired"    column="is_required"     />
+        <result property="sortOrder"     column="sort_order"      />
+        <result property="status"        column="status"          />
+        <result property="createTime"    column="create_time"     />
+        <result property="updateTime"    column="update_time"     />
+        <result property="remark"        column="remark"          />
+        <result property="entryPath"     column="entry_path"      />
+        <result property="platformName"  column="platform_name"   />
+    </resultMap>
+
+    <sql id="selectYyFieldMappingVo">
+        select fm.id, fm.platform_id, fm.standard_field, fm.platform_field,
+               fm.field_type, fm.is_required, fm.sort_order, fm.status,
+               fm.remark, fm.entry_path, fm.create_time, fm.update_time, p.platform_name
+        from yy_field_mapping fm
+        left join yy_platform p on fm.platform_id = p.p_id
+    </sql>
+
+    <select id="selectYyFieldMappingList" parameterType="YyFieldMapping" resultMap="YyFieldMappingResult">
+        <include refid="selectYyFieldMappingVo"/>
+        <where>
+            <if test="platformId != null"> and fm.platform_id = #{platformId}</if>
+            <if test="standardField != null and standardField != ''"> and fm.standard_field like concat('%', #{standardField}, '%')</if>
+            <if test="status != null"> and fm.status = #{status}</if>
+        </where>
+        order by fm.platform_id, fm.sort_order
+    </select>
+    
+    <select id="selectYyFieldMappingById" parameterType="Long" resultMap="YyFieldMappingResult">
+        <include refid="selectYyFieldMappingVo"/>
+        where fm.id = #{id}
+    </select>
+
+    <select id="selectMappingsByPlatformId" parameterType="Long" resultType="java.util.Map">
+        select standard_field, platform_field
+        from yy_field_mapping
+        where platform_id = #{platformId} and status = 1
+    </select>
+
+    <select id="selectEntryPathByPlatformId" parameterType="Long" resultType="String">
+        select entry_path from yy_field_mapping
+        where platform_id = #{platformId} and status = 1 and entry_path is not null and entry_path != ''
+        limit 1
+    </select>
+
+    <insert id="insertYyFieldMapping" parameterType="YyFieldMapping" useGeneratedKeys="true" keyProperty="id">
+        insert into yy_field_mapping
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="platformId != null">platform_id,</if>
+            <if test="standardField != null and standardField != ''">standard_field,</if>
+            <if test="platformField != null and platformField != ''">platform_field,</if>
+            <if test="fieldType != null">field_type,</if>
+            <if test="isRequired != null">is_required,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="status != null">status,</if>
+            <if test="remark != null and remark != ''">remark,</if>
+            <if test="entryPath != null and entryPath != ''">entry_path,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="platformId != null">#{platformId},</if>
+            <if test="standardField != null and standardField != ''">#{standardField},</if>
+            <if test="platformField != null and platformField != ''">#{platformField},</if>
+            <if test="fieldType != null">#{fieldType},</if>
+            <if test="isRequired != null">#{isRequired},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="status != null">#{status},</if>
+            <if test="remark != null and remark != ''">#{remark},</if>
+            <if test="entryPath != null and entryPath != ''">#{entryPath},</if>
+         </trim>
+    </insert>
+
+    <update id="updateYyFieldMapping" parameterType="YyFieldMapping">
+        update yy_field_mapping
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="platformId != null">platform_id = #{platformId},</if>
+            <if test="standardField != null and standardField != ''">standard_field = #{standardField},</if>
+            <if test="platformField != null and platformField != ''">platform_field = #{platformField},</if>
+            <if test="fieldType != null">field_type = #{fieldType},</if>
+            <if test="isRequired != null">is_required = #{isRequired},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="entryPath != null">entry_path = #{entryPath},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteYyFieldMappingById" parameterType="Long">
+        delete from yy_field_mapping where id = #{id}
+    </delete>
+
+    <delete id="deleteYyFieldMappingByIds" parameterType="Long">
+        delete from yy_field_mapping where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <insert id="batchSaveYyFieldMapping">
+        insert into yy_field_mapping
+        (platform_id, standard_field, platform_field, field_type, is_required, sort_order, status, remark, entry_path)
+        values
+        <foreach collection="list" item="item" separator=",">
+            (#{item.platformId}, #{item.standardField}, #{item.platformField},
+             #{item.fieldType}, #{item.isRequired}, #{item.sortOrder}, #{item.status}, #{item.remark}, #{item.entryPath})
+        </foreach>
+        on duplicate key update
+            platform_field = values(platform_field),
+            field_type = values(field_type),
+            is_required = values(is_required),
+            sort_order = values(sort_order),
+            status = values(status),
+            remark = values(remark),
+            entry_path = values(entry_path)
+    </insert>
+
+</mapper>

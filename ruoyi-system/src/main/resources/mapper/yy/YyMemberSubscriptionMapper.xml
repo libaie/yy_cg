@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyMemberSubscriptionMapper">
+    
+    <resultMap type="YyMemberSubscription" id="YyMemberSubscriptionResult">
+        <result property="subId"    column="sub_id"    />
+        <result property="userId"    column="user_id"    />
+        <result property="tierId"    column="tier_id"    />
+        <result property="startTime"    column="start_time"    />
+        <result property="endTime"    column="end_time"    />
+        <result property="payStatus"    column="pay_status"    />
+        <result property="orderNo"    column="order_no"    />
+        <result property="transactionId"    column="transaction_id"    />
+        <result property="payExpireTime"    column="pay_expire_time"    />
+        <result property="payTime"    column="pay_time"    />
+        <result property="createTime"    column="create_time"    />
+        <association property="user" javaType="YyUser">
+            <result property="phone" column="u_phone" />
+        </association>
+        <association property="tier" javaType="YyMemberTier">
+            <result property="tierId" column="t_tier_id" />
+            <result property="cardTitle" column="t_card_title" />
+            <result property="tierName" column="t_tier_name" />
+            <result property="memberLevel" column="t_member_level" />
+            <result property="durationDays" column="t_duration_days" />
+            <result property="price" column="t_price" />
+            <result property="cardTag" column="t_card_tag" />
+        </association>
+    </resultMap>
+
+    <sql id="selectYyMemberSubscriptionVo">
+        select s.sub_id, s.user_id, s.tier_id, s.start_time, s.end_time, s.pay_status, s.order_no, s.transaction_id, s.pay_expire_time, s.pay_time, s.create_time,
+               u.phone as u_phone,
+               t.tier_id as t_tier_id,
+               t.card_title as t_card_title,
+               d.dict_label as t_tier_name, 
+               t.member_level as t_member_level, 
+               t.duration_days as t_duration_days, 
+               t.price as t_price, 
+               t.card_tag as t_card_tag
+        from yy_member_subscription s
+        left join yy_user u on s.user_id = u.user_id
+        left join yy_member_tier t on s.tier_id = t.tier_id
+        left join sys_dict_data d on d.dict_type = 'yy_member_tier_name' 
+                                  and d.dict_value = CAST(t.member_level AS CHAR)
+    </sql>
+
+    <select id="selectYyMemberSubscriptionList" parameterType="YyMemberSubscription" resultMap="YyMemberSubscriptionResult">
+        <include refid="selectYyMemberSubscriptionVo"/>
+        <where>  
+            <if test="startTime != null "> and s.start_time = #{startTime}</if>
+            <if test="endTime != null "> and s.end_time = #{endTime}</if>
+            <if test="payStatus != null "> and s.pay_status = #{payStatus}</if>
+            <if test="orderNo != null  and orderNo != ''"> and s.order_no = #{orderNo}</if>
+            <if test="userId != null "> and s.user_id = #{userId}</if>
+        </where>
+        order by s.create_time desc
+    </select>
+    
+    <select id="selectYyMemberSubscriptionBySubId" parameterType="Long" resultMap="YyMemberSubscriptionResult">
+        <include refid="selectYyMemberSubscriptionVo"/>
+        where s.sub_id = #{subId}
+    </select>
+
+    <insert id="insertYyMemberSubscription" parameterType="YyMemberSubscription" useGeneratedKeys="true" keyProperty="subId">
+        insert into yy_member_subscription
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="tierId != null">tier_id,</if>
+            <if test="startTime != null">start_time,</if>
+            <if test="endTime != null">end_time,</if>
+            <if test="payStatus != null">pay_status,</if>
+            <if test="orderNo != null and orderNo != ''">order_no,</if>
+            <if test="transactionId != null and transactionId != ''">transaction_id,</if>
+            <if test="payExpireTime != null">pay_expire_time,</if>
+            <if test="payTime != null">pay_time,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="tierId != null">#{tierId},</if>
+            <if test="startTime != null">#{startTime},</if>
+            <if test="endTime != null">#{endTime},</if>
+            <if test="payStatus != null">#{payStatus},</if>
+            <if test="orderNo != null and orderNo != ''">#{orderNo},</if>
+            <if test="transactionId != null and transactionId != ''">#{transactionId},</if>
+            <if test="payExpireTime != null">#{payExpireTime},</if>
+            <if test="payTime != null">#{payTime},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateYyMemberSubscription" parameterType="YyMemberSubscription">
+        update yy_member_subscription
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="tierId != null">tier_id = #{tierId},</if>
+            <if test="startTime != null">start_time = #{startTime},</if>
+            <if test="endTime != null">end_time = #{endTime},</if>
+            <if test="payStatus != null">pay_status = #{payStatus},</if>
+            <if test="orderNo != null and orderNo != ''">order_no = #{orderNo},</if>
+            <if test="transactionId != null and transactionId != ''">transaction_id = #{transactionId},</if>
+            <if test="payExpireTime != null">pay_expire_time = #{payExpireTime},</if>
+            <if test="payTime != null">pay_time = #{payTime},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </trim>
+        where sub_id = #{subId}
+    </update>
+
+    <delete id="deleteYyMemberSubscriptionBySubId" parameterType="Long">
+        delete from yy_member_subscription where sub_id = #{subId}
+    </delete>
+
+    <delete id="deleteYyMemberSubscriptionBySubIds" parameterType="String">
+        delete from yy_member_subscription where sub_id in 
+        <foreach item="subId" collection="array" open="(" separator="," close=")">
+            #{subId}
+        </foreach>
+    </delete>
+
+    <update id="cancelTimeoutOrders" parameterType="Integer">
+        update yy_member_subscription 
+        set pay_status = 0 
+        where pay_status = 3 and pay_expire_time &lt; now()
+    </update>
+
+    <select id="selectYyMemberSubscriptionByOrderNo" parameterType="String" resultMap="YyMemberSubscriptionResult">
+        <include refid="selectYyMemberSubscriptionVo"/>
+        where s.order_no = #{orderNo}
+    </select>
+
+    <select id="countUserTierOrders" resultType="Integer">
+        select count(1) from yy_member_subscription 
+        where user_id = #{userId} and tier_id = #{tierId} and pay_status = 1
+    </select>
+
+    <select id="countByTierId" resultType="Integer">
+        select count(1) from yy_member_subscription 
+        where tier_id = #{tierId}
+    </select>
+
+    <select id="selectCountPayingByUserAndTier" resultType="Integer">
+        select count(1) from yy_member_subscription
+        where user_id = #{userId} and tier_id = #{tierId} and pay_status = 3
+    </select>
+
+    <!-- 取消用户同类型的其他支付中订单（支付成功后清理） -->
+    <update id="cancelOtherPayingOrders">
+        update yy_member_subscription
+        set pay_status = 2
+        where user_id = #{userId}
+          and tier_id = #{tierId}
+          and pay_status = 3
+          and sub_id != #{excludeSubId}
+    </update>
+
+    <!-- 原子插入预付款订单：仅当不存在同用户同套餐的支付中订单时才插入 -->
+    <insert id="insertIfNoPaying" parameterType="YyMemberSubscription" useGeneratedKeys="true" keyProperty="subId">
+        INSERT INTO yy_member_subscription (user_id, tier_id, pay_status, pay_expire_time, order_no, create_time)
+        SELECT #{userId}, #{tierId}, 3, #{payExpireTime}, #{orderNo}, #{createTime}
+        FROM dual
+        WHERE NOT EXISTS (
+            SELECT 1 FROM yy_member_subscription
+            WHERE user_id = #{userId} AND tier_id = #{tierId} AND pay_status = 3
+        )
+    </insert>
+</mapper>

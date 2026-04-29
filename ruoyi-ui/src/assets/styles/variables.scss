@@ -1,0 +1,39 @@
+// 品牌主题色 — 医疗科技蓝青色系
+$blue:#3B82F6;
+$light-blue:#60A5FA;
+$red:#EF4444;
+$pink: #EC4899;
+$green: #14B8A6;
+$tiffany: #0EA5E9;
+$yellow:#FBBF24;
+$panGreen: #10B981;
+
+// 默认菜单主题风格 — 浅色清爽风格
+$base-menu-color: #475569;
+$base-menu-color-active: #FFFFFF;
+$base-menu-background: #FFFFFF;
+$base-logo-title-color: #1E293B;
+
+$base-menu-light-color:rgba(0,0,0,.70);
+$base-menu-light-background:#ffffff;
+$base-logo-light-title-color: #1E293B;
+
+$base-sub-menu-background: #F8FAFC;
+$base-sub-menu-hover: #F1F5F9;
+
+$base-sidebar-width: 210px;
+
+// the :export directive is the magic sauce for webpack
+// https://www.bluematador.com/blog/how-to-share-variables-between-js-and-sass
+:export {
+  menuColor: $base-menu-color;
+  menuLightColor: $base-menu-light-color;
+  menuColorActive: $base-menu-color-active;
+  menuBackground: $base-menu-background;
+  menuLightBackground: $base-menu-light-background;
+  subMenuBackground: $base-sub-menu-background;
+  subMenuHover: $base-sub-menu-hover;
+  sideBarWidth: $base-sidebar-width;
+  logoTitleColor: $base-logo-title-color;
+  logoLightTitleColor: $base-logo-light-title-color
+}

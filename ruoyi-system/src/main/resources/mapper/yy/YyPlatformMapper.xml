@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyPlatformMapper">
+    
+    <resultMap type="YyPlatform" id="YyPlatformResult">
+        <result property="pId"              column="p_id"               />
+        <result property="platformName"     column="platform_name"      />
+        <result property="platformCode"     column="platform_code"      />
+        <result property="platformLogoUrl"  column="platform_logo_url"  />
+        <result property="platformLoginUrl" column="platform_login_url" />
+        <result property="platformHomeUrl"  column="platform_home_url"  />
+        <result property="tokenDomain"      column="token_domain"       />
+        <result property="tokenKey"         column="token_key"          />
+        <result property="token"            column="token"              />
+        <result property="tokenStorageType" column="token_storage_type" />
+        <result property="isActive"         column="is_active"          />
+        <result property="sortOrder"        column="sort_order"         />
+        <result property="createTime"       column="create_time"        />
+        <result property="updateTime"       column="update_time"        />
+        
+        <collection property="apis" javaType="java.util.List" column="p_id" select="selectApisByPlatformId" />
+    </resultMap>
+
+    <sql id="selectYyPlatformVo">
+        select yy_platform.p_id, yy_platform.platform_name, yy_platform.platform_code, yy_platform.platform_logo_url, yy_platform.platform_login_url, yy_platform.platform_home_url,
+               yy_platform.token_domain, up.token as token, yy_platform.token_key, yy_platform.token_storage_type, yy_platform.is_active, yy_platform.sort_order, yy_platform.create_time, yy_platform.update_time
+        from yy_platform
+        left join yy_user_platform up on yy_platform.p_id = up.platform_id
+    </sql>
+
+    <select id="selectYyPlatformList" parameterType="YyPlatform" resultMap="YyPlatformResult">
+        <include refid="selectYyPlatformVo"/>
+        <where>
+            <if test="platformName != null and platformName != ''"> and platform_name like concat('%', #{platformName}, '%')</if>
+            <if test="platformCode != null and platformCode != ''"> and platform_code = #{platformCode}</if>
+            <if test="isActive != null"> and is_active = #{isActive}</if>
+        </where>
+        order by sort_order desc, p_id asc
+    </select>
+
+    <select id="selectApisByPlatformId" resultMap="com.ruoyi.yy.mapper.YyPlatformApiMapper.YyPlatformApiResult">
+        select 
+            api_id as apiId, 
+            platform_id as platformId, 
+            api_name as apiName, 
+            api_code as apiCode, 
+            api_url as apiUrl, 
+            api_method as apiMethod, 
+            content_type as contentType, 
+            data_encrypt as dataEncrypt, 
+            headers as headers, 
+            build_body as buildBody, 
+            query_params as queryParams, 
+            normalize as normalize, 
+            response_type as responseType, 
+            page_field as pageField, 
+            page_size_field as pageSizeField, 
+            default_page_size as defaultPageSize, 
+            api_type as apiType, 
+            is_active as isActive, 
+            sort_order as sortOrder, 
+            remark as remark
+        from yy_platform_api
+        where platform_id = #{p_id}
+    </select>
+    
+    <select id="selectYyPlatformByPId" parameterType="Long" resultMap="YyPlatformResult">
+        <include refid="selectYyPlatformVo"/>
+        where p_id = #{pId}
+    </select>
+
+    <select id="selectYyPlatformByCode" parameterType="String" resultMap="YyPlatformResult">
+        <include refid="selectYyPlatformVo"/>
+        where platform_code = #{platformCode}
+    </select>
+
+    <insert id="insertYyPlatform" parameterType="YyPlatform" useGeneratedKeys="true" keyProperty="pId">
+        insert into yy_platform
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="platformName != null and platformName != ''">platform_name,</if>
+            <if test="platformCode != null and platformCode != ''">platform_code,</if>
+            <if test="platformLogoUrl != null">platform_logo_url,</if>
+            <if test="platformLoginUrl != null and platformLoginUrl != ''">platform_login_url,</if>
+            <if test="platformHomeUrl != null">platform_home_url,</if>
+            <if test="tokenDomain != null">token_domain,</if>
+            <if test="tokenKey != null">token_key,</if>
+            <if test="tokenStorageType != null">token_storage_type,</if>
+            <if test="isActive != null">is_active,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="platformName != null and platformName != ''">#{platformName},</if>
+            <if test="platformCode != null and platformCode != ''">#{platformCode},</if>
+            <if test="platformLogoUrl != null">#{platformLogoUrl},</if>
+            <if test="platformLoginUrl != null and platformLoginUrl != ''">#{platformLoginUrl},</if>
+            <if test="platformHomeUrl != null">#{platformHomeUrl},</if>
+            <if test="tokenDomain != null">#{tokenDomain},</if>
+            <if test="tokenKey != null">#{tokenKey},</if>
+            <if test="tokenStorageType != null">#{tokenStorageType},</if>
+            <if test="isActive != null">#{isActive},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateYyPlatform" parameterType="YyPlatform">
+        update yy_platform
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="platformName != null and platformName != ''">platform_name = #{platformName},</if>
+            <if test="platformCode != null and platformCode != ''">platform_code = #{platformCode},</if>
+            <if test="platformLogoUrl != null">platform_logo_url = #{platformLogoUrl},</if>
+            <if test="platformLoginUrl != null and platformLoginUrl != ''">platform_login_url = #{platformLoginUrl},</if>
+            <if test="platformHomeUrl != null">platform_home_url = #{platformHomeUrl},</if>
+            <if test="tokenDomain != null">token_domain = #{tokenDomain},</if>
+            <if test="tokenKey != null">token_key = #{tokenKey},</if>
+            <if test="tokenStorageType != null">token_storage_type = #{tokenStorageType},</if>
+            <if test="isActive != null">is_active = #{isActive},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+        </trim>
+        where p_id = #{pId}
+    </update>
+
+    <delete id="deleteYyPlatformByPId" parameterType="Long">
+        delete from yy_platform where p_id = #{pId}
+    </delete>
+
+    <delete id="deleteYyPlatformByPIds" parameterType="Long">
+        delete from yy_platform where p_id in 
+        <foreach item="pId" collection="array" open="(" separator="," close=")">
+            #{pId}
+        </foreach>
+    </delete>
+
+    <!-- 示例：根据用户ID查询用户绑定的平台 -->
+    <select id="selectPlatformsByUserId" parameterType="Long" resultMap="YyPlatformResult">
+        <include refid="selectYyPlatformVo"/>
+        <where>
+            and up.user_id = #{userId}
+        </where>
+        order by sort_order desc, p_id asc
+    </select>
+
+    <!-- 根据用户ID和平台条件查询平台列表 -->
+    <select id="selectYyPlatformListByUserId" parameterType="map" resultMap="YyPlatformResult">
+        select yy_platform.p_id, yy_platform.platform_name, yy_platform.platform_code, yy_platform.platform_logo_url, yy_platform.platform_login_url, yy_platform.platform_home_url,
+               yy_platform.token_domain, up.token as token, yy_platform.token_key, yy_platform.token_storage_type, yy_platform.is_active, yy_platform.sort_order, yy_platform.create_time, yy_platform.update_time
+        from yy_platform
+        left join yy_user_platform up on yy_platform.p_id = up.platform_id
+        <where>
+            <if test="userId != null"> and up.user_id = #{userId}</if>
+            <if test="platform.platformName != null and platform.platformName != ''"> and yy_platform.platform_name like concat('%', #{platform.platformName}, '%')</if>
+            <if test="platform.platformCode != null and platform.platformCode != ''"> and yy_platform.platform_code = #{platform.platformCode}</if>
+            <if test="platform.isActive != null"> and yy_platform.is_active = #{platform.isActive}</if>
+        </where>
+        order by yy_platform.sort_order desc, yy_platform.p_id asc
+    </select>
+
+</mapper>

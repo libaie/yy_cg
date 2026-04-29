@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyMemberTierMapper">
+    
+    <resultMap type="YyMemberTier" id="YyMemberTierResult">
+        <result property="tierId"    column="tier_id"    />
+        <result property="tierName"    column="tier_name"    />
+        <result property="memberLevel"    column="member_level"    />
+        <result property="cardTitle"    column="card_title"    />
+        <result property="cardType"    column="card_type"    />
+        <result property="durationDays"    column="duration_days"    />
+        <result property="price"    column="price"    />
+        <result property="privileges"    column="privileges"    />
+        <result property="cardTag"    column="card_tag"    />
+        <result property="limitCount"    column="limit_count"    />
+        <result property="isActive"    column="is_active"    />
+        <result property="createTime"    column="create_time"    />
+    </resultMap>
+
+    <sql id="selectYyMemberTierVo">
+        select tier_id, tier_name, member_level,card_title, card_type, duration_days, price, privileges, card_tag, limit_count, is_active, create_time from yy_member_tier
+    </sql>
+
+    <select id="selectYyMemberTierList" parameterType="YyMemberTier" resultMap="YyMemberTierResult">
+        <include refid="selectYyMemberTierVo"/>
+        <where>  
+            <if test="tierName != null  and tierName != ''"> and tier_name = #{tierName}</if>
+            <if test="memberLevel != null  and memberLevel != ''"> and member_level = #{memberLevel}</if>
+            <if test="cardTitle != null  and cardTitle != ''"> and card_title = #{cardTitle}</if>
+            <if test="cardType != null  and cardType != ''"> and card_type = #{cardType}</if>
+            <if test="durationDays != null "> and duration_days = #{durationDays}</if>
+            <if test="price != null "> and price = #{price}</if>
+            <if test="privileges != null  and privileges != ''"> and privileges = #{privileges}</if>
+            <if test="cardTag != null  and cardTag != ''"> and card_tag = #{cardTag}</if>
+            <if test="limitCount != null "> and limit_count = #{limitCount}</if>
+            <if test="isActive != null "> and is_active = #{isActive}</if>
+        </where>
+        ORDER BY price ASC
+    </select>
+    
+    <select id="selectYyMemberTierByTierId" parameterType="Long" resultMap="YyMemberTierResult">
+        <include refid="selectYyMemberTierVo"/>
+        where tier_id = #{tierId}
+    </select>
+
+    <insert id="insertYyMemberTier" parameterType="YyMemberTier" useGeneratedKeys="true" keyProperty="tierId">
+        insert into yy_member_tier
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="tierName != null and tierName != ''">tier_name,</if>
+            <if test="cardTitle != null and cardTitle != ''">card_title,</if>
+            <if test="cardType != null and cardType != ''">card_type,</if>
+            <if test="memberLevel != null and memberLevel != ''">member_level,</if>
+            <if test="durationDays != null">duration_days,</if>
+            <if test="price != null">price,</if>
+            <if test="privileges != null">privileges,</if>
+            <if test="cardTag != null and cardTag != ''">card_tag,</if>
+            <if test="limitCount != null">limit_count,</if>
+            <if test="isActive != null">is_active,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="tierName != null and tierName != ''">#{tierName},</if>
+            <if test="cardTitle != null and cardTitle != ''">#{cardTitle},</if>
+            <if test="cardType != null and cardType != ''">#{cardType},</if>
+            <if test="memberLevel != null and memberLevel != ''">#{memberLevel},</if>
+            <if test="durationDays != null">#{durationDays},</if>
+            <if test="price != null">#{price},</if>
+            <if test="privileges != null">#{privileges},</if>
+            <if test="cardTag != null and cardTag != ''">#{cardTag},</if>
+            <if test="limitCount != null">#{limitCount},</if>
+            <if test="isActive != null">#{isActive},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateYyMemberTier" parameterType="YyMemberTier">
+        update yy_member_tier
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="tierName != null and tierName != ''">tier_name = #{tierName},</if>
+            <if test="cardTitle != null and cardTitle != ''">card_title = #{cardTitle},</if>
+            <if test="cardType != null and cardType != ''">card_type = #{cardType},</if>
+            <if test="memberLevel != null and memberLevel != ''">member_level = #{memberLevel},</if>
+            <if test="durationDays != null">duration_days = #{durationDays},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="privileges != null">privileges = #{privileges},</if>
+            <if test="cardTag != null and cardTag != ''">card_tag = #{cardTag},</if>
+            <if test="limitCount != null">limit_count = #{limitCount},</if>
+            <if test="isActive != null">is_active = #{isActive},</if>
+            <if test="createTime != null">create_time = #{createTime},</if>
+        </trim>
+        where tier_id = #{tierId}
+    </update>
+
+    <delete id="deleteYyMemberTierByTierId" parameterType="Long">
+        delete from yy_member_tier where tier_id = #{tierId}
+    </delete>
+
+    <delete id="deleteYyMemberTierByTierIds" parameterType="String">
+        delete from yy_member_tier where tier_id in 
+        <foreach item="tierId" collection="array" open="(" separator="," close=")">
+            #{tierId}
+        </foreach>
+    </delete>
+</mapper>

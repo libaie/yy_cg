@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyReferralConfigMapper">
+    
+    <resultMap type="YyReferralConfig" id="YyReferralConfigResult">
+        <result property="id"              column="id"                 />
+        <result property="tierId"          column="tier_id"            />
+        <result property="rewardType"      column="reward_type"        />
+        <result property="directReward"    column="direct_reward"      />
+        <result property="indirectReward"  column="indirect_reward"    />
+        <result property="isActive"        column="is_active"          />
+        <result property="remark"          column="remark"             />
+        <result property="createTime"      column="create_time"        />
+        <result property="updateTime"      column="update_time"        />
+    </resultMap>
+
+    <sql id="selectYyReferralConfigVo">
+        select id, tier_id, reward_type, direct_reward, indirect_reward, is_active, remark, create_time, update_time
+        from yy_referral_config
+    </sql>
+
+    <select id="selectYyReferralConfigList" parameterType="YyReferralConfig" resultMap="YyReferralConfigResult">
+        <include refid="selectYyReferralConfigVo"/>
+        <where>
+            <if test="tierId != null"> and tier_id = #{tierId}</if>
+            <if test="isActive != null"> and is_active = #{isActive}</if>
+        </where>
+        order by id desc
+    </select>
+
+    <select id="selectYyReferralConfigById" parameterType="Long" resultMap="YyReferralConfigResult">
+        <include refid="selectYyReferralConfigVo"/>
+        where id = #{id}
+    </select>
+
+    <!-- 精确匹配指定 tierId 的启用配置 -->
+    <select id="selectActiveTierConfig" parameterType="Long" resultMap="YyReferralConfigResult">
+        <include refid="selectYyReferralConfigVo"/>
+        where is_active = 1 and tier_id = #{tierId}
+        order by id desc limit 1
+    </select>
+
+    <!-- 全等级通用启用配置 -->
+    <select id="selectActiveGlobalConfig" resultMap="YyReferralConfigResult">
+        <include refid="selectYyReferralConfigVo"/>
+        where is_active = 1 and tier_id is null
+        order by id desc limit 1
+    </select>
+
+    <insert id="insertYyReferralConfig" useGeneratedKeys="true" keyProperty="id">
+        insert into yy_referral_config
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="tierId != null">tier_id,</if>
+            <if test="rewardType != null">reward_type,</if>
+            <if test="directReward != null">direct_reward,</if>
+            <if test="indirectReward != null">indirect_reward,</if>
+            <if test="isActive != null">is_active,</if>
+            <if test="remark != null">remark,</if>
+            create_time,
+        </trim>
+        <trim prefix="values(" suffix=")" suffixOverrides=",">
+            <if test="tierId != null">#{tierId},</if>
+            <if test="rewardType != null">#{rewardType},</if>
+            <if test="directReward != null">#{directReward},</if>
+            <if test="indirectReward != null">#{indirectReward},</if>
+            <if test="isActive != null">#{isActive},</if>
+            <if test="remark != null">#{remark},</if>
+            now(),
+        </trim>
+    </insert>
+
+    <update id="updateYyReferralConfig" parameterType="YyReferralConfig">
+        update yy_referral_config
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="tierId != null">tier_id = #{tierId},</if>
+            <if test="rewardType != null">reward_type = #{rewardType},</if>
+            <if test="directReward != null">direct_reward = #{directReward},</if>
+            <if test="indirectReward != null">indirect_reward = #{indirectReward},</if>
+            <if test="isActive != null">is_active = #{isActive},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = now(),
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteYyReferralConfigById" parameterType="Long">
+        delete from yy_referral_config where id = #{id}
+    </delete>
+
+    <delete id="deleteYyReferralConfigByIds" parameterType="Long">
+        delete from yy_referral_config where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>

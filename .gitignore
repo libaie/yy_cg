@@ -1,0 +1,24 @@
+# Maven
+target/
+!.mvn/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+dist/
+*.log
+
+# Misc
+*.class
+*.jar
+*.war

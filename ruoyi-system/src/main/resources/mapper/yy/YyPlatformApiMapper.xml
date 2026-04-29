@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyPlatformApiMapper">
+    
+    <resultMap type="YyPlatformApi" id="YyPlatformApiResult">
+        <result property="apiId"           column="api_id"            />
+        <result property="platformId"      column="platform_id"       />
+        <result property="apiName"         column="api_name"          />
+        <result property="apiCode"         column="api_code"          />
+        <result property="apiUrl"          column="api_url"           />
+        <result property="apiMethod"       column="api_method"        />
+        <result property="contentType"     column="content_type"      />
+        <result property="dataEncrypt"     column="data_encrypt"      />
+        <result property="headers"         column="headers"           />
+        <result property="buildBody"       column="build_body"        />
+        <result property="queryParams"     column="query_params"      />
+        <result property="normalize"       column="normalize"         />
+        <result property="responseType"    column="response_type"     />
+        <result property="pageField"       column="page_field"        />
+        <result property="pageSizeField"   column="page_size_field"   />
+        <result property="defaultPageSize" column="default_page_size" />
+        <result property="apiType"         column="api_type"          />
+        <result property="entryPath"       column="entry_path"        />
+        <result property="isActive"        column="is_active"         />
+        <result property="sortOrder"       column="sort_order"        />
+        <result property="remark"          column="remark"            />
+        <result property="createTime"      column="create_time"       />
+        <result property="updateTime"      column="update_time"       />
+        <result property="encryptDataPath"     column="encrypt_data_path"     />
+        <result property="usePageSign"     column="use_page_sign"      />
+        <result property="signScript"      column="sign_script"       />
+    </resultMap>
+
+    <sql id="selectYyPlatformApiVo">
+        select api_id, platform_id, api_name, api_code, api_url, api_method, content_type, 
+               data_encrypt, headers, build_body, query_params, normalize, response_type, page_field, 
+               page_size_field, default_page_size, api_type,encrypt_data_path,use_page_sign, sign_script,entry_path, is_active, sort_order, remark, 
+               create_time, update_time 
+        from yy_platform_api
+    </sql>
+
+    <select id="selectYyPlatformApiList" parameterType="YyPlatformApi" resultMap="YyPlatformApiResult">
+        <include refid="selectYyPlatformApiVo"/>
+        <where>
+            <if test="platformId != null"> and platform_id = #{platformId}</if>
+            <if test="apiName != null and apiName != ''"> and api_name like concat('%', #{apiName}, '%')</if>
+            <if test="apiCode != null and apiCode != ''"> and api_code = #{apiCode}</if>
+            <if test="apiType != null and apiType != ''"> and api_type = #{apiType}</if>
+            <if test="isActive != null"> and is_active = #{isActive}</if>
+        </where>
+        order by sort_order desc, api_id asc
+    </select>
+    
+    <select id="selectYyPlatformApiByApiId" parameterType="Long" resultMap="YyPlatformApiResult">
+        <include refid="selectYyPlatformApiVo"/>
+        where api_id = #{apiId}
+    </select>
+
+    <insert id="insertYyPlatformApi" parameterType="YyPlatformApi" useGeneratedKeys="true" keyProperty="apiId">
+        insert into yy_platform_api
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="platformId != null">platform_id,</if>
+            <if test="apiName != null and apiName != ''">api_name,</if>
+            <if test="apiCode != null and apiCode != ''">api_code,</if>
+            <if test="apiUrl != null and apiUrl != ''">api_url,</if>
+            <if test="apiMethod != null">api_method,</if>
+            <if test="contentType != null">content_type,</if>
+            <if test="dataEncrypt != null">data_encrypt,</if>
+            <if test="headers != null">headers,</if>
+            <if test="buildBody != null">build_body,</if>
+            <if test="queryParams != null">query_params,</if>
+            <if test="normalize != null">normalize,</if>
+            <if test="responseType != null">response_type,</if>
+            <if test="pageField != null">page_field,</if>
+            <if test="pageSizeField != null">page_size_field,</if>
+            <if test="encryptDataPath != null">encrypt_data_path,</if>
+            <if test="usePageSign != null">use_page_sign,</if>
+            <if test="signScript != null">sign_script,</if>
+            <if test="defaultPageSize != null">default_page_size,</if>
+            <if test="apiType != null">api_type,</if>
+            <if test="entryPath != null and entryPath != ''">entry_path,</if>
+            <if test="isActive != null">is_active,</if>
+            <if test="sortOrder != null">sort_order,</if>
+            <if test="remark != null">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="platformId != null">#{platformId},</if>
+            <if test="apiName != null and apiName != ''">#{apiName},</if>
+            <if test="apiCode != null and apiCode != ''">#{apiCode},</if>
+            <if test="apiUrl != null and apiUrl != ''">#{apiUrl},</if>
+            <if test="apiMethod != null">#{apiMethod},</if>
+            <if test="contentType != null">#{contentType},</if>
+            <if test="dataEncrypt != null">#{dataEncrypt},</if>
+            <if test="headers != null">#{headers},</if>
+            <if test="buildBody != null">#{buildBody},</if>
+            <if test="queryParams != null">#{queryParams},</if>
+            <if test="normalize != null">#{normalize},</if>
+            <if test="responseType != null">#{responseType},</if>
+            <if test="pageField != null">#{pageField},</if>
+            <if test="pageSizeField != null">#{pageSizeField},</if>
+            <if test="encryptDataPath != null">#{encryptDataPath},</if>
+            <if test="usePageSign != null">#{usePageSign},</if>
+            <if test="signScript != null">#{signScript},</if>
+            <if test="defaultPageSize != null">#{defaultPageSize},</if>
+            <if test="apiType != null">#{apiType},</if>
+            <if test="entryPath != null and entryPath != ''">#{entryPath},</if>
+            <if test="isActive != null">#{isActive},</if>
+            <if test="sortOrder != null">#{sortOrder},</if>
+            <if test="remark != null">#{remark},</if>
+         </trim>
+    </insert>
+
+    <update id="updateYyPlatformApi" parameterType="YyPlatformApi">
+        update yy_platform_api
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="platformId != null">platform_id = #{platformId},</if>
+            <if test="apiName != null and apiName != ''">api_name = #{apiName},</if>
+            <if test="apiCode != null and apiCode != ''">api_code = #{apiCode},</if>
+            <if test="apiUrl != null and apiUrl != ''">api_url = #{apiUrl},</if>
+            <if test="apiMethod != null">api_method = #{apiMethod},</if>
+            <if test="contentType != null">content_type = #{contentType},</if>
+            <if test="dataEncrypt != null">data_encrypt = #{dataEncrypt},</if>
+            <if test="headers != null">headers = #{headers},</if>
+            <if test="buildBody != null">build_body = #{buildBody},</if>
+            <if test="queryParams != null">query_params = #{queryParams},</if>
+            <if test="encryptDataPath != null">encrypt_data_path = #{encryptDataPath},</if>
+            <if test="usePageSign != null">use_page_sign = #{usePageSign},</if>
+            <if test="signScript != null">sign_script = #{signScript},</if>
+            <if test="normalize != null">normalize = #{normalize},</if>
+            <if test="responseType != null">response_type = #{responseType},</if>
+            <if test="pageField != null">page_field = #{pageField},</if>
+            <if test="pageSizeField != null">page_size_field = #{pageSizeField},</if>
+            <if test="defaultPageSize != null">default_page_size = #{defaultPageSize},</if>
+            <if test="apiType != null">api_type = #{apiType},</if>
+            <if test="entryPath != null">entry_path = #{entryPath},</if>
+            <if test="isActive != null">is_active = #{isActive},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where api_id = #{apiId}
+    </update>
+
+    <delete id="deleteYyPlatformApiByApiId" parameterType="Long">
+        delete from yy_platform_api where api_id = #{apiId}
+    </delete>
+
+    <delete id="deleteYyPlatformApiByApiIds" parameterType="Long">
+        delete from yy_platform_api where api_id in 
+        <foreach item="apiId" collection="array" open="(" separator="," close=")">
+            #{apiId}
+        </foreach>
+    </delete>
+
+    <select id="selectApisByPlatformId" parameterType="Long" resultMap="YyPlatformApiResult">
+        <include refid="selectYyPlatformApiVo"/>
+        where platform_id = #{platformId} and is_active = 1
+        order by sort_order desc, api_id asc
+    </select>
+</mapper>

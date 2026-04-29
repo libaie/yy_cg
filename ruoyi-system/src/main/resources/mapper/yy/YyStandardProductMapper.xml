@@ -1,0 +1,394 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyStandardProductMapper">
+    
+    <resultMap type="YyStandardProduct" id="YyStandardProductResult">
+        <result property="id"                      column="id"                        />
+        <result property="productId"               column="product_id"                />
+        <result property="skuId"                   column="sku_id"                    />
+        <result property=\"sourcePlatform\"          column=\"source_platform\"           />
+        <result property=\"sourceApi\"              column=\"source_api\"               />
+        <result property=\"rawDataPayload\"          column=\"raw_data_payload\"          />
+        <result property="barcode"                 column="barcode"                   />
+        <result property="productName"             column="product_name"              />
+        <result property="commonName"              column="common_name"               />
+        <result property="brandName"               column="brand_name"                />
+        <result property="manufacturer"            column="manufacturer"              />
+        <result property="approvalNumber"          column="approval_number"           />
+        <result property="categoryId"              column="category_id"               />
+        <result property="categoryName"            column="category_name"             />
+        <result property="specification"           column="specification"             />
+        <result property="unit"                    column="unit"                      />
+        <result property="packingRatio"            column="packing_ratio"             />
+        <result property="productStatus"           column="product_status"            />
+        <result property="stockQuantity"           column="stock_quantity"            />
+        <result property="warehouseStock"          column="warehouse_stock"           />
+        <result property="mainImages"              column="main_images"               />
+        <result property="minOrderQty"             column="min_order_qty"             />
+        <result property="maxOrderQty"             column="max_order_qty"             />
+        <result property="productionDate"          column="production_date"           />
+        <result property="expirationDate"          column="expiration_date"           />
+        <result property="shelfLife"               column="shelf_life"                />
+        <result property="isPrescriptionDrug"      column="is_prescription_drug"      />
+        <result property="medicareType"            column="medicare_type"             />
+        <result property="traceabilityCodeStatus"  column="traceability_code_status"  />
+        <result property="salesVolume"             column="sales_volume"              />
+        <result property="shopName"                column="shop_name"                 />
+        <result property="priceRetail"             column="price_retail"              />
+        <result property="priceCurrent"            column="price_current"             />
+        <result property="priceStepRules"          column="price_step_rules"          />
+        <result property="priceAssemble"           column="price_assemble"            />
+        <result property="isTaxIncluded"           column="is_tax_included"           />
+        <result property="freightAmount"           column="freight_amount"            />
+        <result property="freeShippingThreshold"   column="free_shipping_threshold"   />
+        <result property="tags"                    column="tags"                      />
+        <result property="marketingTags"           column="marketing_tags"            />
+        <result property="activityDetails"         column="activity_details"          />
+        <result property="purchaseLimits"          column="purchase_limits"           />
+        <result property="fusionGroupId"           column="fusion_group_id"           />
+        <result property="fusionKey"               column="fusion_key"                />
+        <result property="collectedAt"             column="collected_at"              />
+        <result property="syncedAt"                column="synced_at"                 />
+    </resultMap>
+
+    <sql id="selectYyStandardProductVo">
+        select sp.id, sp.product_id, sp.sku_id, sp.source_platform, sp.source_api,
+               sp.barcode, sp.product_name, sp.common_name, sp.brand_name,
+               sp.manufacturer, sp.approval_number, sp.category_id, sp.category_name,
+               sp.specification, sp.unit, sp.packing_ratio,
+               sp.product_status, sp.stock_quantity, sp.warehouse_stock,
+               sp.main_images, sp.min_order_qty, sp.max_order_qty,
+               sp.production_date, sp.expiration_date, sp.shelf_life,
+               sp.is_prescription_drug, sp.medicare_type, sp.traceability_code_status,
+               sp.sales_volume, sp.shop_name,
+               sp.price_retail, sp.price_current, sp.price_step_rules, sp.price_assemble,
+               sp.is_tax_included, sp.freight_amount, sp.free_shipping_threshold,
+               sp.tags, sp.marketing_tags, sp.activity_details, sp.purchase_limits,
+               sp.fusion_group_id, sp.fusion_key,
+               sp.raw_data_payload, sp.collected_at, sp.synced_at
+        from yy_standard_product sp
+    </sql>
+
+    <select id="selectYyStandardProductList" parameterType="YyStandardProduct" resultMap="YyStandardProductResult">
+        <include refid="selectYyStandardProductVo"/>
+        <where>
+            <if test="sourcePlatform != null and sourcePlatform != ''"> and sp.source_platform = #{sourcePlatform}</if>
+            <if test="commonName != null and commonName != ''"> and sp.common_name like concat('%', #{commonName}, '%')</if>
+            <if test="productName != null and productName != ''"> and sp.product_name like concat('%', #{productName}, '%')</if>
+            <if test="manufacturer != null and manufacturer != ''"> and sp.manufacturer like concat('%', #{manufacturer}, '%')</if>
+            <if test="brandName != null and brandName != ''"> and sp.brand_name like concat('%', #{brandName}, '%')</if>
+            <if test="approvalNumber != null and approvalNumber != ''"> and sp.approval_number like concat('%', #{approvalNumber}, '%')</if>
+            <if test="barcode != null and barcode != ''"> and sp.barcode = #{barcode}</if>
+            <if test="fusionGroupId != null"> and sp.fusion_group_id = #{fusionGroupId}</if>
+            <if test="fusionKey != null and fusionKey != ''"> and sp.fusion_key = #{fusionKey}</if>
+            <if test="productStatus != null and productStatus != ''"> and sp.product_status = #{productStatus}</if>
+        </where>
+        order by sp.synced_at desc
+    </select>
+    
+    <select id="selectYyStandardProductById" parameterType="Long" resultMap="YyStandardProductResult">
+        <include refid="selectYyStandardProductVo"/>
+        where sp.id = #{id}
+    </select>
+
+    <select id="selectBySkuId" resultMap="YyStandardProductResult">
+        <include refid="selectYyStandardProductVo"/>
+        where sp.source_platform = #{sourcePlatform} and sp.sku_id = #{skuId}
+    </select>
+
+    <select id="selectByFusionGroupId" parameterType="Long" resultMap="YyStandardProductResult">
+        <include refid="selectYyStandardProductVo"/>
+        where sp.fusion_group_id = #{fusionGroupId}
+        order by sp.price_current asc
+    </select>
+
+    <insert id="insertYyStandardProduct" parameterType="YyStandardProduct" useGeneratedKeys="true" keyProperty="id">
+        insert into yy_standard_product
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="productId != null and productId != ''">product_id,</if>
+            <if test="skuId != null and skuId != ''">sku_id,</if>
+            <if test="sourcePlatform != null and sourcePlatform != ''">source_platform,</if>
+            <if test="sourceApi != null and sourceApi != ''">source_api,</if>
+            <if test="rawDataPayload != null">raw_data_payload,</if>
+            <if test="barcode != null and barcode != ''">barcode,</if>
+            <if test="productName != null and productName != ''">product_name,</if>
+            <if test="commonName != null and commonName != ''">common_name,</if>
+            <if test="brandName != null and brandName != ''">brand_name,</if>
+            <if test="manufacturer != null and manufacturer != ''">manufacturer,</if>
+            <if test="approvalNumber != null and approvalNumber != ''">approval_number,</if>
+            <if test="categoryId != null and categoryId != ''">category_id,</if>
+            <if test="categoryName != null and categoryName != ''">category_name,</if>
+            <if test="specification != null and specification != ''">specification,</if>
+            <if test="unit != null and unit != ''">unit,</if>
+            <if test="packingRatio != null and packingRatio != ''">packing_ratio,</if>
+            <if test="productStatus != null and productStatus != ''">product_status,</if>
+            <if test="stockQuantity != null">stock_quantity,</if>
+            <if test="warehouseStock != null">warehouse_stock,</if>
+            <if test="mainImages != null">main_images,</if>
+            <if test="minOrderQty != null">min_order_qty,</if>
+            <if test="maxOrderQty != null">max_order_qty,</if>
+            <if test="productionDate != null and productionDate != ''">production_date,</if>
+            <if test="expirationDate != null and expirationDate != ''">expiration_date,</if>
+            <if test="shelfLife != null and shelfLife != ''">shelf_life,</if>
+            <if test="isPrescriptionDrug != null">is_prescription_drug,</if>
+            <if test="medicareType != null and medicareType != ''">medicare_type,</if>
+            <if test="traceabilityCodeStatus != null">traceability_code_status,</if>
+            <if test="salesVolume != null">sales_volume,</if>
+            <if test="shopName != null and shopName != ''">shop_name,</if>
+            <if test="priceRetail != null">price_retail,</if>
+            <if test="priceCurrent != null">price_current,</if>
+            <if test="priceStepRules != null">price_step_rules,</if>
+            <if test="priceAssemble != null">price_assemble,</if>
+            <if test="isTaxIncluded != null">is_tax_included,</if>
+            <if test="freightAmount != null">freight_amount,</if>
+            <if test="freeShippingThreshold != null">free_shipping_threshold,</if>
+            <if test="tags != null">tags,</if>
+            <if test="marketingTags != null">marketing_tags,</if>
+            <if test="activityDetails != null">activity_details,</if>
+            <if test="purchaseLimits != null">purchase_limits,</if>
+            <if test="fusionGroupId != null">fusion_group_id,</if>
+            <if test="fusionKey != null and fusionKey != ''">fusion_key,</if>
+            <if test="collectedAt != null">collected_at,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="productId != null and productId != ''">#{productId},</if>
+            <if test="skuId != null and skuId != ''">#{skuId},</if>
+            <if test="sourcePlatform != null and sourcePlatform != ''">#{sourcePlatform},</if>
+            <if test="sourceApi != null and sourceApi != ''">#{sourceApi},</if>
+            <if test="rawDataPayload != null">#{rawDataPayload},</if>
+            <if test="barcode != null and barcode != ''">#{barcode},</if>
+            <if test="productName != null and productName != ''">#{productName},</if>
+            <if test="commonName != null and commonName != ''">#{commonName},</if>
+            <if test="brandName != null and brandName != ''">#{brandName},</if>
+            <if test="manufacturer != null and manufacturer != ''">#{manufacturer},</if>
+            <if test="approvalNumber != null and approvalNumber != ''">#{approvalNumber},</if>
+            <if test="categoryId != null and categoryId != ''">#{categoryId},</if>
+            <if test="categoryName != null and categoryName != ''">#{categoryName},</if>
+            <if test="specification != null and specification != ''">#{specification},</if>
+            <if test="unit != null and unit != ''">#{unit},</if>
+            <if test="packingRatio != null and packingRatio != ''">#{packingRatio},</if>
+            <if test="productStatus != null and productStatus != ''">#{productStatus},</if>
+            <if test="stockQuantity != null">#{stockQuantity},</if>
+            <if test="warehouseStock != null">#{warehouseStock},</if>
+            <if test="mainImages != null">#{mainImages},</if>
+            <if test="minOrderQty != null">#{minOrderQty},</if>
+            <if test="maxOrderQty != null">#{maxOrderQty},</if>
+            <if test="productionDate != null and productionDate != ''">#{productionDate},</if>
+            <if test="expirationDate != null and expirationDate != ''">#{expirationDate},</if>
+            <if test="shelfLife != null and shelfLife != ''">#{shelfLife},</if>
+            <if test="isPrescriptionDrug != null">#{isPrescriptionDrug},</if>
+            <if test="medicareType != null and medicareType != ''">#{medicareType},</if>
+            <if test="traceabilityCodeStatus != null">#{traceabilityCodeStatus},</if>
+            <if test="salesVolume != null">#{salesVolume},</if>
+            <if test="shopName != null and shopName != ''">#{shopName},</if>
+            <if test="priceRetail != null">#{priceRetail},</if>
+            <if test="priceCurrent != null">#{priceCurrent},</if>
+            <if test="priceStepRules != null">#{priceStepRules},</if>
+            <if test="priceAssemble != null">#{priceAssemble},</if>
+            <if test="isTaxIncluded != null">#{isTaxIncluded},</if>
+            <if test="freightAmount != null">#{freightAmount},</if>
+            <if test="freeShippingThreshold != null">#{freeShippingThreshold},</if>
+            <if test="tags != null">#{tags},</if>
+            <if test="marketingTags != null">#{marketingTags},</if>
+            <if test="activityDetails != null">#{activityDetails},</if>
+            <if test="purchaseLimits != null">#{purchaseLimits},</if>
+            <if test="fusionGroupId != null">#{fusionGroupId},</if>
+            <if test="fusionKey != null and fusionKey != ''">#{fusionKey},</if>
+            <if test="collectedAt != null">#{collectedAt},</if>
+         </trim>
+    </insert>
+
+    <update id="updateYyStandardProduct" parameterType="YyStandardProduct">
+        update yy_standard_product
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="productId != null">product_id = #{productId},</if>
+            <if test="skuId != null">sku_id = #{skuId},</if>
+            <if test="sourcePlatform != null">source_platform = #{sourcePlatform},</if>
+            <if test="rawDataPayload != null">raw_data_payload = #{rawDataPayload},</if>
+            <if test="barcode != null">barcode = #{barcode},</if>
+            <if test="productName != null">product_name = #{productName},</if>
+            <if test="commonName != null">common_name = #{commonName},</if>
+            <if test="brandName != null">brand_name = #{brandName},</if>
+            <if test="manufacturer != null">manufacturer = #{manufacturer},</if>
+            <if test="approvalNumber != null">approval_number = #{approvalNumber},</if>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="categoryName != null">category_name = #{categoryName},</if>
+            <if test="specification != null">specification = #{specification},</if>
+            <if test="unit != null">unit = #{unit},</if>
+            <if test="packingRatio != null">packing_ratio = #{packingRatio},</if>
+            <if test="productStatus != null">product_status = #{productStatus},</if>
+            <if test="stockQuantity != null">stock_quantity = #{stockQuantity},</if>
+            <if test="warehouseStock != null">warehouse_stock = #{warehouseStock},</if>
+            <if test="mainImages != null">main_images = #{mainImages},</if>
+            <if test="minOrderQty != null">min_order_qty = #{minOrderQty},</if>
+            <if test="maxOrderQty != null">max_order_qty = #{maxOrderQty},</if>
+            <if test="productionDate != null">production_date = #{productionDate},</if>
+            <if test="expirationDate != null">expiration_date = #{expirationDate},</if>
+            <if test="shelfLife != null">shelf_life = #{shelfLife},</if>
+            <if test="isPrescriptionDrug != null">is_prescription_drug = #{isPrescriptionDrug},</if>
+            <if test="medicareType != null">medicare_type = #{medicareType},</if>
+            <if test="traceabilityCodeStatus != null">traceability_code_status = #{traceabilityCodeStatus},</if>
+            <if test="salesVolume != null">sales_volume = #{salesVolume},</if>
+            <if test="shopName != null">shop_name = #{shopName},</if>
+            <if test="priceRetail != null">price_retail = #{priceRetail},</if>
+            <if test="priceCurrent != null">price_current = #{priceCurrent},</if>
+            <if test="priceStepRules != null">price_step_rules = #{priceStepRules},</if>
+            <if test="priceAssemble != null">price_assemble = #{priceAssemble},</if>
+            <if test="isTaxIncluded != null">is_tax_included = #{isTaxIncluded},</if>
+            <if test="freightAmount != null">freight_amount = #{freightAmount},</if>
+            <if test="freeShippingThreshold != null">free_shipping_threshold = #{freeShippingThreshold},</if>
+            <if test="tags != null">tags = #{tags},</if>
+            <if test="marketingTags != null">marketing_tags = #{marketingTags},</if>
+            <if test="activityDetails != null">activity_details = #{activityDetails},</if>
+            <if test="purchaseLimits != null">purchase_limits = #{purchaseLimits},</if>
+            <if test="fusionGroupId != null">fusion_group_id = #{fusionGroupId},</if>
+            <if test="fusionKey != null">fusion_key = #{fusionKey},</if>
+            <if test="collectedAt != null">collected_at = #{collectedAt},</if>
+            synced_at = now(),
+        </trim>
+        where id = #{id}
+    </update>
+
+    <insert id="upsertYyStandardProduct" parameterType="YyStandardProduct" useGeneratedKeys="true" keyProperty="id">
+        insert into yy_standard_product
+        (product_id, sku_id, source_platform, source_api, raw_data_payload,
+         barcode, product_name, common_name, brand_name, manufacturer, approval_number,
+         category_id, category_name, specification, unit, packing_ratio,
+         product_status, stock_quantity, warehouse_stock, main_images,
+         min_order_qty, max_order_qty,
+         production_date, expiration_date, shelf_life,
+         is_prescription_drug, medicare_type, traceability_code_status,
+         sales_volume, shop_name,
+         price_retail, price_current, price_step_rules, price_assemble,
+         is_tax_included, freight_amount, free_shipping_threshold,
+         tags, marketing_tags, activity_details, purchase_limits,
+         fusion_group_id, fusion_key, collected_at)
+        values
+        (#{productId}, #{skuId}, #{sourcePlatform}, #{sourceApi}, #{rawDataPayload},
+         #{barcode}, #{productName}, #{commonName}, #{brandName}, #{manufacturer}, #{approvalNumber},
+         #{categoryId}, #{categoryName}, #{specification}, #{unit}, #{packingRatio},
+         #{productStatus}, #{stockQuantity}, #{warehouseStock}, #{mainImages},
+         #{minOrderQty}, #{maxOrderQty},
+         #{productionDate}, #{expirationDate}, #{shelfLife},
+         #{isPrescriptionDrug}, #{medicareType}, #{traceabilityCodeStatus},
+         #{salesVolume}, #{shopName},
+         #{priceRetail}, #{priceCurrent}, #{priceStepRules}, #{priceAssemble},
+         #{isTaxIncluded}, #{freightAmount}, #{freeShippingThreshold},
+         #{tags}, #{marketingTags}, #{activityDetails}, #{purchaseLimits},
+         #{fusionGroupId}, #{fusionKey}, #{collectedAt})
+        on duplicate key update
+            product_id = values(product_id),
+            source_api = values(source_api),
+            raw_data_payload = values(raw_data_payload),
+            barcode = values(barcode),
+            product_name = values(product_name),
+            common_name = values(common_name),
+            brand_name = values(brand_name),
+            manufacturer = values(manufacturer),
+            approval_number = values(approval_number),
+            category_id = values(category_id),
+            category_name = values(category_name),
+            specification = values(specification),
+            unit = values(unit),
+            packing_ratio = values(packing_ratio),
+            product_status = values(product_status),
+            stock_quantity = values(stock_quantity),
+            warehouse_stock = values(warehouse_stock),
+            main_images = values(main_images),
+            min_order_qty = values(min_order_qty),
+            max_order_qty = values(max_order_qty),
+            production_date = values(production_date),
+            expiration_date = values(expiration_date),
+            shelf_life = values(shelf_life),
+            is_prescription_drug = values(is_prescription_drug),
+            medicare_type = values(medicare_type),
+            traceability_code_status = values(traceability_code_status),
+            sales_volume = values(sales_volume),
+            shop_name = values(shop_name),
+            price_retail = values(price_retail),
+            price_current = values(price_current),
+            price_step_rules = values(price_step_rules),
+            price_assemble = values(price_assemble),
+            is_tax_included = values(is_tax_included),
+            freight_amount = values(freight_amount),
+            free_shipping_threshold = values(free_shipping_threshold),
+            tags = values(tags),
+            marketing_tags = values(marketing_tags),
+            activity_details = values(activity_details),
+            purchase_limits = values(purchase_limits),
+            fusion_group_id = values(fusion_group_id),
+            fusion_key = values(fusion_key),
+            collected_at = values(collected_at),
+            synced_at = now()
+    </insert>
+
+    <delete id="deleteYyStandardProductById" parameterType="Long">
+        delete from yy_standard_product where id = #{id}
+    </delete>
+
+    <delete id="deleteYyStandardProductByIds" parameterType="Long">
+        delete from yy_standard_product where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- ========== 比价查询（增量扩展） ========== -->
+
+    <!-- 根据SKU ID查询各平台价格（比价核心） -->
+    <select id="selectAllPlatformsBySkuId" parameterType="String" resultMap="YyStandardProductResult">
+        select * from yy_standard_product
+        where sku_id = #{skuId}
+        order by source_platform, collected_at desc
+    </select>
+
+    <!-- 根据融合键查询各平台价格 -->
+    <select id="selectByFusionKey" parameterType="String" resultMap="YyStandardProductResult">
+        select * from yy_standard_product
+        where fusion_key = #{fusionKey}
+        order by source_platform, collected_at desc
+    </select>
+
+    <!-- 根据通用名查询各平台价格 -->
+    <select id="selectByCommonName" parameterType="String" resultMap="YyStandardProductResult">
+        select * from yy_standard_product
+        where common_name like concat('%', #{commonName}, '%')
+        order by source_platform, collected_at desc
+    </select>
+
+    <!-- 批量查询SKU在各平台的价格 -->
+    <select id="selectBatchBySkuIds" resultMap="YyStandardProductResult">
+        select * from yy_standard_product
+        where sku_id in
+        <foreach item="skuId" collection="skuIds" open="(" separator="," close=")">
+            #{skuId}
+        </foreach>
+        order by sku_id, source_platform, collected_at desc
+    </select>
+
+    <!-- 查询有活动的商品 -->
+    <select id="selectProductsWithActivity" resultMap="YyStandardProductResult">
+        select * from yy_standard_product
+        where (price_assemble is not null or marketing_tags is not null or activity_details is not null)
+        <if test="platformCode != null and platformCode != ''">
+            and source_platform = #{platformCode}
+        </if>
+        order by source_platform, collected_at desc
+    </select>
+
+    <!-- 统计各平台商品数量 -->
+    <select id="selectPlatformStats" resultType="java.util.Map">
+        select 
+            source_platform as platformCode,
+            count(*) as productCount,
+            count(distinct sku_id) as skuCount,
+            count(distinct fusion_key) as fusionGroupCount,
+            avg(price_current) as avgPrice,
+            min(price_current) as minPrice,
+            max(price_current) as maxPrice
+        from yy_standard_product
+        group by source_platform
+        order by productCount desc
+    </select>
+
+</mapper>

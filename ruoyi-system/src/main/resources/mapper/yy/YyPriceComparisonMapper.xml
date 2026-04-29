@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyPriceComparisonMapper">
+    
+    <resultMap type="com.ruoyi.yy.domain.YyPriceComparison" id="YyPriceComparisonResult">
+        <result property="id" column="id"/>
+        <result property="productId" column="product_id"/>
+        <result property="skuId" column="sku_id"/>
+        <result property="sourcePlatform" column="source_platform"/>
+        <result property="basePrice" column="base_price"/>
+        <result property="currentPrice" column="current_price"/>
+        <result property="activityType" column="activity_type"/>
+        <result property="activityPrice" column="activity_price"/>
+        <result property="activityName" column="activity_name"/>
+        <result property="activityRules" column="activity_rules"/>
+        <result property="minOrderQty" column="min_order_qty"/>
+        <result property="maxOrderQty" column="max_order_qty"/>
+        <result property="stockQuantity" column="stock_quantity"/>
+        <result property="freightAmount" column="freight_amount"/>
+        <result property="freeShippingThreshold" column="free_shipping_threshold"/>
+        <result property="deliveryDays" column="delivery_days"/>
+        <result property="deliveryArea" column="delivery_area"/>
+        <result property="customerType" column="customer_type"/>
+        <result property="validFrom" column="valid_from"/>
+        <result property="validUntil" column="valid_until"/>
+        <result property="rawData" column="raw_data"/>
+        <result property="collectedAt" column="collected_at"/>
+        <result property="syncedAt" column="synced_at"/>
+    </resultMap>
+    
+    <sql id="selectYyPriceComparisonVo">
+        select id, product_id, sku_id, source_platform, base_price, current_price,
+               activity_type, activity_price, activity_name, activity_rules,
+               min_order_qty, max_order_qty, stock_quantity,
+               freight_amount, free_shipping_threshold, delivery_days, delivery_area,
+               customer_type, valid_from, valid_until, raw_data, collected_at, synced_at
+        from yy_price_comparison
+    </sql>
+    
+    <select id="selectYyPriceComparisonById" parameterType="Long" resultMap="YyPriceComparisonResult">
+        <include refid="selectYyPriceComparisonVo"/>
+        where id = #{id}
+    </select>
+    
+    <select id="selectBySkuAndPlatform" resultMap="YyPriceComparisonResult">
+        <include refid="selectYyPriceComparisonVo"/>
+        where sku_id = #{skuId}
+          and source_platform = #{sourcePlatform}
+          and customer_type = #{customerType}
+          and (valid_until is null or valid_until > now())
+        order by collected_at desc
+        limit 1
+    </select>
+    
+    <select id="selectYyPriceComparisonList" parameterType="com.ruoyi.yy.domain.YyPriceComparison" resultMap="YyPriceComparisonResult">
+        <include refid="selectYyPriceComparisonVo"/>
+        <where>
+            <if test="skuId != null and skuId != ''">and sku_id = #{skuId}</if>
+            <if test="productId != null and productId != ''">and product_id = #{productId}</if>
+            <if test="sourcePlatform != null and sourcePlatform != ''">and source_platform = #{sourcePlatform}</if>
+            <if test="customerType != null and customerType != ''">and customer_type = #{customerType}</if>
+            <if test="activityType != null and activityType != ''">and activity_type = #{activityType}</if>
+        </where>
+        order by collected_at desc
+    </select>
+    
+    <select id="selectBySkuIds" resultMap="YyPriceComparisonResult">
+        <include refid="selectYyPriceComparisonVo"/>
+        where sku_id in
+        <foreach collection="skuIds" item="skuId" open="(" separator="," close=")">
+            #{skuId}
+        </foreach>
+        and customer_type = #{customerType}
+        and (valid_until is null or valid_until > now())
+        order by sku_id, source_platform, collected_at desc
+    </select>
+    
+    <select id="selectLatestPricesBySku" resultMap="YyPriceComparisonResult">
+        select t1.*
+        from yy_price_comparison t1
+        inner join (
+            select sku_id, source_platform, max(id) as max_id
+            from yy_price_comparison
+            where sku_id = #{skuId}
+              and customer_type = #{customerType}
+              and (valid_until is null or valid_until > now())
+            group by sku_id, source_platform
+        ) t2 on t1.id = t2.max_id
+        order by 
+            case when activity_price is not null then activity_price else current_price end + freight_amount asc
+    </select>
+    
+    <insert id="insertYyPriceComparison" parameterType="com.ruoyi.yy.domain.YyPriceComparison" useGeneratedKeys="true" keyProperty="id">
+        insert into yy_price_comparison (
+            product_id, sku_id, source_platform, base_price, current_price,
+            activity_type, activity_price, activity_name, activity_rules,
+            min_order_qty, max_order_qty, stock_quantity,
+            freight_amount, free_shipping_threshold, delivery_days, delivery_area,
+            customer_type, valid_from, valid_until, raw_data, collected_at
+        ) values (
+            #{productId}, #{skuId}, #{sourcePlatform}, #{basePrice}, #{currentPrice},
+            #{activityType}, #{activityPrice}, #{activityName}, #{activityRules},
+            #{minOrderQty}, #{maxOrderQty}, #{stockQuantity},
+            #{freightAmount}, #{freeShippingThreshold}, #{deliveryDays}, #{deliveryArea},
+            #{customerType}, #{validFrom}, #{validUntil}, #{rawData}, #{collectedAt}
+        )
+    </insert>
+    
+    <insert id="batchInsert" parameterType="java.util.List">
+        insert into yy_price_comparison (
+            product_id, sku_id, source_platform, base_price, current_price,
+            activity_type, activity_price, activity_name, activity_rules,
+            min_order_qty, max_order_qty, stock_quantity,
+            freight_amount, free_shipping_threshold, delivery_days, delivery_area,
+            customer_type, valid_from, valid_until, raw_data, collected_at
+        ) values
+        <foreach collection="list" item="item" separator=",">
+            (
+                #{item.productId}, #{item.skuId}, #{item.sourcePlatform}, #{item.basePrice}, #{item.currentPrice},
+                #{item.activityType}, #{item.activityPrice}, #{item.activityName}, #{item.activityRules},
+                #{item.minOrderQty}, #{item.maxOrderQty}, #{item.stockQuantity},
+                #{item.freightAmount}, #{item.freeShippingThreshold}, #{item.deliveryDays}, #{item.deliveryArea},
+                #{item.customerType}, #{item.validFrom}, #{item.validUntil}, #{item.rawData}, #{item.collectedAt}
+            )
+        </foreach>
+    </insert>
+    
+    <update id="updateYyPriceComparison" parameterType="com.ruoyi.yy.domain.YyPriceComparison">
+        update yy_price_comparison
+        <set>
+            <if test="productId != null">product_id = #{productId},</if>
+            <if test="basePrice != null">base_price = #{basePrice},</if>
+            <if test="currentPrice != null">current_price = #{currentPrice},</if>
+            <if test="activityType != null">activity_type = #{activityType},</if>
+            <if test="activityPrice != null">activity_price = #{activityPrice},</if>
+            <if test="activityName != null">activity_name = #{activityName},</if>
+            <if test="activityRules != null">activity_rules = #{activityRules},</if>
+            <if test="minOrderQty != null">min_order_qty = #{minOrderQty},</if>
+            <if test="maxOrderQty != null">max_order_qty = #{maxOrderQty},</if>
+            <if test="stockQuantity != null">stock_quantity = #{stockQuantity},</if>
+            <if test="freightAmount != null">freight_amount = #{freightAmount},</if>
+            <if test="freeShippingThreshold != null">free_shipping_threshold = #{freeShippingThreshold},</if>
+            <if test="deliveryDays != null">delivery_days = #{deliveryDays},</if>
+            <if test="deliveryArea != null">delivery_area = #{deliveryArea},</if>
+            <if test="validFrom != null">valid_from = #{validFrom},</if>
+            <if test="validUntil != null">valid_until = #{validUntil},</if>
+            <if test="rawData != null">raw_data = #{rawData},</if>
+        </set>
+        where id = #{id}
+    </update>
+    
+    <delete id="deleteYyPriceComparisonById" parameterType="Long">
+        delete from yy_price_comparison where id = #{id}
+    </delete>
+    
+    <delete id="deleteYyPriceComparisonByIds" parameterType="String">
+        delete from yy_price_comparison where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+    
+    <select id="selectPriceTrend" resultType="java.util.Map">
+        select 
+            DATE(collected_at) as date,
+            source_platform as platformCode,
+            avg(base_price) as basePrice,
+            avg(COALESCE(activity_price, current_price)) as activityPrice,
+            avg(COALESCE(activity_price, current_price) + freight_amount) as totalCost,
+            max(activity_type) as activityType,
+            max(collected_at) as collectedAt
+        from yy_price_comparison
+        where sku_id = #{skuId}
+          and source_platform = #{platformCode}
+          and collected_at >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        group by DATE(collected_at), source_platform
+        order by date asc
+    </select>
+    
+    <select id="selectComparisonStats" resultType="java.util.Map">
+        select 
+            count(distinct sku_id) as totalProducts,
+            count(distinct case when activity_type is not null and activity_type != 'none' then sku_id end) as productWithActivity,
+            count(distinct source_platform) as platformCount,
+            avg(case when activity_price is not null then current_price - activity_price else 0 end) as avgSavedAmount
+        from yy_price_comparison
+        where customer_type = #{customerType}
+          and (valid_until is null or valid_until > now())
+    </select>
+    
+    <delete id="deleteExpiredData">
+        delete from yy_price_comparison 
+        where collected_at < DATE_SUB(NOW(), INTERVAL #{expireDays} DAY)
+    </delete>
+    
+</mapper>

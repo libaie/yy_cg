@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyUserPlatformMapper">
+
+    <resultMap type="YyUserPlatform" id="YyUserPlatformResult">
+        <result property="id"              column="id"                />
+        <result property="userId"          column="user_id"           />
+        <result property="platformId"      column="platform_id"       />
+        <result property="bindStatus"      column="bind_status"       />
+        <result property="loginStatus"     column="login_status"      />
+        <result property="token"           column="token"             />
+        <result property="tokenExpireTime" column="token_expire_time" />
+        <result property="platformUsername" column="platform_username" />
+        <result property="platformNickname" column="platform_nickname" />
+        <result property="bindTime"        column="bind_time"         />
+        <result property="lastLoginTime"   column="last_login_time"   />
+        <result property="lastSyncTime"    column="last_sync_time"    />
+        <result property="createTime"      column="create_time"       />
+        <result property="updateTime"      column="update_time"       />
+        <result property="userNickName"    column="user_nick_name"    />
+        <result property="userPhone"       column="user_phone"        />
+    </resultMap>
+
+    <sql id="selectYyUserPlatformListVo">
+        select up.id, up.user_id, up.platform_id, up.bind_status, up.login_status, up.token, up.token_expire_time,
+               up.platform_username, up.platform_nickname, up.bind_time, up.last_login_time, up.last_sync_time,
+               up.create_time, up.update_time,
+               u.nick_name as user_nick_name,
+               u.phone as user_phone
+        from yy_user_platform up
+        left join yy_user u on u.user_id = up.user_id
+    </sql>
+
+    <sql id="selectYyUserPlatformVo">
+        select id, user_id, platform_id, bind_status, login_status, token, token_expire_time,
+               platform_username, platform_nickname, bind_time, last_login_time, last_sync_time,
+               create_time, update_time
+        from yy_user_platform
+    </sql>
+
+    <select id="selectYyUserPlatformById" parameterType="Long" resultMap="YyUserPlatformResult">
+        <include refid="selectYyUserPlatformListVo"/>
+        where up.id = #{id}
+    </select>
+
+    <select id="selectYyUserPlatformList" parameterType="YyUserPlatform" resultMap="YyUserPlatformResult">
+        <include refid="selectYyUserPlatformListVo"/>
+        <where>
+            <if test="userId != null"> and up.user_id = #{userId}</if>
+            <if test="platformId != null"> and up.platform_id = #{platformId}</if>
+            <if test="bindStatus != null"> and up.bind_status = #{bindStatus}</if>
+            <if test="loginStatus != null"> and up.login_status = #{loginStatus}</if>
+        </where>
+        order by up.last_login_time desc, up.create_time desc
+    </select>
+
+    <select id="selectByUserIdAndPlatformId" resultMap="YyUserPlatformResult">
+        <include refid="selectYyUserPlatformVo"/>
+        where user_id = #{userId} and platform_id = #{platformId}
+    </select>
+
+    <select id="selectByUserId" parameterType="Long" resultMap="YyUserPlatformResult">
+        <include refid="selectYyUserPlatformVo"/>
+        where user_id = #{userId}
+        order by last_login_time desc, create_time desc
+    </select>
+
+    <!-- 定时任务用:查所有已绑定且有Token的记录 -->
+    <select id="selectBoundWithToken" resultMap="YyUserPlatformResult">
+        <include refid="selectYyUserPlatformVo"/>
+        where bind_status = 1 and token is not null and token != ''
+    </select>
+
+    <insert id="insertYyUserPlatform" parameterType="YyUserPlatform" useGeneratedKeys="true" keyProperty="id">
+        insert into yy_user_platform
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="userId != null">user_id,</if>
+            <if test="platformId != null">platform_id,</if>
+            <if test="bindStatus != null">bind_status,</if>
+            <if test="loginStatus != null">login_status,</if>
+            <if test="token != null">token,</if>
+            <if test="tokenExpireTime != null">token_expire_time,</if>
+            <if test="platformUsername != null">platform_username,</if>
+            <if test="platformNickname != null">platform_nickname,</if>
+            <if test="bindTime != null">bind_time,</if>
+            <if test="lastLoginTime != null">last_login_time,</if>
+            <if test="lastSyncTime != null">last_sync_time,</if>
+            <if test="createTime != null">create_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="userId != null">#{userId},</if>
+            <if test="platformId != null">#{platformId},</if>
+            <if test="bindStatus != null">#{bindStatus},</if>
+            <if test="loginStatus != null">#{loginStatus},</if>
+            <if test="token != null">#{token},</if>
+            <if test="tokenExpireTime != null">#{tokenExpireTime},</if>
+            <if test="platformUsername != null">#{platformUsername},</if>
+            <if test="platformNickname != null">#{platformNickname},</if>
+            <if test="bindTime != null">#{bindTime},</if>
+            <if test="lastLoginTime != null">#{lastLoginTime},</if>
+            <if test="lastSyncTime != null">#{lastSyncTime},</if>
+            <if test="createTime != null">#{createTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateYyUserPlatform" parameterType="YyUserPlatform">
+        update yy_user_platform
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="bindStatus != null">bind_status = #{bindStatus},</if>
+            <if test="loginStatus != null">login_status = #{loginStatus},</if>
+            <if test="token != null">token = #{token},</if>
+            <if test="tokenExpireTime != null">token_expire_time = #{tokenExpireTime},</if>
+            <if test="platformUsername != null">platform_username = #{platformUsername},</if>
+            <if test="platformNickname != null">platform_nickname = #{platformNickname},</if>
+            <if test="bindTime != null">bind_time = #{bindTime},</if>
+            <if test="lastLoginTime != null">last_login_time = #{lastLoginTime},</if>
+            <if test="lastSyncTime != null">last_sync_time = #{lastSyncTime},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteYyUserPlatformById" parameterType="Long">
+        delete from yy_user_platform where id = #{id}
+    </delete>
+
+    <delete id="deleteYyUserPlatformByIds" parameterType="Long">
+        delete from yy_user_platform where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
