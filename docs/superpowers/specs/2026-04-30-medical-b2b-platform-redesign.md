@@ -29,7 +29,7 @@
 2. 引入药品主数据 + 多信号融合 + AI匹配，大幅提升融合准确率
 3. 平台适配器模式，新平台接入变为配置任务
 4. Chrome扩展模块化，支持动态加载平台配置
-5. AI能力层：药品匹配、比价顾问、药品评测、智能搜索
+5. AI能力层（12个模块）：药品匹配、比价顾问、药品评测、智能搜索、采购计划、合规检查、市场情报、关联推荐、图片识别、定价建议、库存优化、智能客服
 6. 使用通义千问/百炼作为LLM服务
 
 ---
@@ -78,7 +78,7 @@
 | user | 用户、会员、平台绑定 | YyUser, YyMemberTier, YyUserPlatform |
 | collection | 数据采集入库管道 | DataIngestPipeline |
 | referral | 推荐奖励 | YyReferralConfig, YyReferralReward |
-| ai | AI匹配、AI比价推荐、AI评测、AI搜索 | AiGateway, AiMatchEngine, AiAdvisor, AiEvaluator, AiSearchEngine |
+| ai | AI能力层（12个AI模块） | AiGateway, AiMatchEngine, AiAdvisor, AiEvaluator, AiSearchEngine, AiPurchasePlanner, AiComplianceChecker, AiMarketIntelligence, AiCrossSell, AiImageSearch, AiPricingAdvisor, AiInventoryOptimizer, AiChatAssistant |
 
 ---
 
@@ -138,12 +138,20 @@ com.ruoyi.yy/
     mapper/
     service/
     service/impl/
-  ai/                          # AI能力域
+  ai/                          # AI能力域（12个AI模块）
     gateway/                   # AiGateway (统一AI调用网关)
     match/                     # AiMatchEngine (AI药品匹配)
     advisor/                   # AiAdvisor (AI比价顾问)
     evaluator/                 # AiEvaluator (AI药品评测)
     search/                    # AiSearchEngine (AI智能搜索)
+    purchase/                  # AiPurchasePlanner (AI采购计划)
+    compliance/                # AiComplianceChecker (AI合规检查)
+    intelligence/              # AiMarketIntelligence (AI市场情报)
+    crosssell/                 # AiCrossSell (AI关联推荐)
+    imagesearch/               # AiImageSearch (AI图片识别)
+    pricing/                   # AiPricingAdvisor (AI定价建议)
+    inventory/                 # AiInventoryOptimizer (AI库存优化)
+    chat/                      # AiChatAssistant (AI智能客服)
     prompt/                    # PromptTemplate (Prompt模板管理)
     config/                    # AI配置
   common/                      # 共享组件
@@ -685,7 +693,7 @@ CREATE TABLE yy_ai_prompt_template (
     id BIGINT NOT NULL AUTO_INCREMENT,
     template_code VARCHAR(50) NOT NULL COMMENT '模板编码',
     template_name VARCHAR(100) NOT NULL COMMENT '模板名称',
-    scene VARCHAR(50) NOT NULL COMMENT '场景: match/advisor/evaluator/search',
+    scene VARCHAR(50) NOT NULL COMMENT '场景: match/advisor/evaluator/search/purchase/compliance/intelligence/crosssell/imagesearch/pricing/inventory/chat',
     system_prompt TEXT NOT NULL COMMENT '系统提示词',
     user_prompt_template TEXT NOT NULL COMMENT '用户提示词模板(含占位符)',
     model VARCHAR(50) DEFAULT 'qwen-turbo' COMMENT '使用的模型',
@@ -697,6 +705,268 @@ CREATE TABLE yy_ai_prompt_template (
     PRIMARY KEY (id),
     UNIQUE KEY uk_template_code (template_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI Prompt模板表';
+```
+
+### 8.7 AI采购计划自动生成
+
+**场景**: 药店每周/每月需要制定采购计划，目前依赖人工经验。
+
+**AI能力**:
+- 基于历史销售数据 + 季节性因素（感冒药冬季需求高、防暑药夏季需求高）
+- 结合当前库存水位和安全库存阈值
+- 考虑药品效期，避免过量采购导致过期损耗
+- 自动生成每周/每月采购清单，包含建议采购量和最优平台
+- 支持人工调整后重新计算
+
+```java
+@Service
+public class AiPurchasePlanner {
+    public PurchasePlan generatePlan(String pharmacyId, String period) {
+        // 1. 获取历史销售数据（近3-6个月）
+        // 2. 分析季节性趋势和品类关联
+        // 3. 获取当前库存和效期信息
+        // 4. 调用LLM生成采购计划
+        // 5. 返回结构化采购清单 + 自然语言说明
+    }
+}
+```
+
+**新增数据表**:
+```sql
+CREATE TABLE yy_purchase_plan (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    plan_period VARCHAR(20) NOT NULL COMMENT '计划周期(2026-W18/2026-05)',
+    plan_data JSON NOT NULL COMMENT '采购计划明细JSON',
+    ai_summary TEXT COMMENT 'AI生成的采购建议摘要',
+    status VARCHAR(20) DEFAULT 'draft' COMMENT 'draft/confirmed/completed',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_user_period (user_id, plan_period)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI采购计划表';
+```
+
+### 8.8 AI合规检查
+
+**场景**: 医药行业监管严格，药店需要确保采购的药品和供应商资质合规。
+
+**AI能力**:
+- 批准文号真伪验证（对接国家药监局数据库）
+- 供应商GSP/GMP资质有效期检查
+- 追溯码状态异常预警
+- 医保目录变动影响分析（某药品被移出医保 → 影响采购策略）
+- 处方药/非处方药分类合规检查
+
+```java
+@Service
+public class AiComplianceChecker {
+    public ComplianceReport check(Long drugId, String platformCode) {
+        // 1. 验证批准文号格式和有效性
+        // 2. 检查供应商资质
+        // 3. 检查追溯码状态
+        // 4. 检查医保分类
+        // 5. 生成合规报告
+    }
+}
+```
+
+**新增数据表**:
+```sql
+CREATE TABLE yy_compliance_check (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    drug_id BIGINT COMMENT '药品ID',
+    platform_code VARCHAR(50) COMMENT '平台编码',
+    check_type VARCHAR(50) NOT NULL COMMENT '检查类型: approval/supplier/traceability/medicalcare',
+    check_result VARCHAR(20) NOT NULL COMMENT 'pass/warning/fail',
+    detail JSON COMMENT '检查详情',
+    checked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_drug (drug_id),
+    KEY idx_result (check_result)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI合规检查记录表';
+```
+
+### 8.9 AI市场情报
+
+**场景**: 医药行业政策变动频繁（集采、医保谈判），价格波动大，需要及时掌握市场动态。
+
+**AI能力**:
+- 行业政策监控：集采扩面、医保谈判结果、GSP新规
+- 价格趋势分析：基于历史比价数据，预测药品价格走势
+- 平台促销规律分析：各平台的促销周期、力度、品类偏好
+- 新药上市提醒：同品类新药上市可能影响现有采购策略
+- 竞品动态：同区域药店的采购行为分析
+
+```java
+@Service
+public class AiMarketIntelligence {
+    public MarketReport generateReport(String category, String region) {
+        // 1. 收集政策新闻（可通过爬虫或API）
+        // 2. 分析价格趋势数据
+        // 3. 分析平台促销历史
+        // 4. 调用LLM生成市场情报报告
+        // 5. 返回结构化报告 + 关键提醒
+    }
+}
+```
+
+### 8.10 AI药品关联推荐
+
+**场景**: 药店采购时往往只关注急需药品，遗漏了关联品类的补充。
+
+**AI能力**:
+- 基于药店采购数据的关联分析（Apriori/FP-Growth算法）
+- 季节性组合推荐（流感季：抗病毒+退烧+维生素C套餐）
+- 疾病场景套餐（高血压：降压药+血压计+低钠盐）
+- 帮助药店发现遗漏的热销品类，提升客单价
+
+```java
+@Service
+public class AiCrossSell {
+    public List<CrossSellRecommendation> recommend(String userId, List<Long> cartDrugIds) {
+        // 1. 获取用户购物车/历史采购
+        // 2. 基于关联规则挖掘推荐商品
+        // 3. 结合季节性和地区因素
+        // 4. 调用LLM生成推荐理由
+        // 5. 返回推荐列表
+    }
+}
+```
+
+### 8.11 AI图片识别购药
+
+**场景**: 药店店员看到竞品或顾客带来的药品，想快速找到采购渠道和最低价。
+
+**AI能力**:
+- 拍照识别药品包装（通用名、厂家、规格）
+- 扫描药品条码（69码）直接匹配
+- 识别结果自动搜索全网最低价
+- 支持模糊拍照（通过药品外观特征识别）
+
+```java
+@Service
+public class AiImageSearch {
+    public ImageSearchResult search(byte[] imageData) {
+        // 1. 调用通义千问VL（视觉语言模型）识别药品信息
+        // 2. 提取通用名、厂家、规格、69码
+        // 3. 通过FusionEngine匹配药品主数据
+        // 4. 搜索各平台价格
+        // 5. 返回识别结果 + 比价结果
+    }
+}
+```
+
+**技术方案**: 使用通义千问VL（视觉理解模型）进行药品包装识别，结合69码条码扫描。
+
+### 8.12 AI定价建议
+
+**场景**: 药店采购后需要制定零售价，目前主要靠经验。
+
+**AI能力**:
+- 分析同区域同品类药品的零售价分布
+- 基于采购成本 + 目标毛利率，建议最优零售定价
+- 医保支付价与市场价的差异分析
+- 特殊药品（集采药品）的定价约束提醒
+- 动态定价建议：临近效期的药品降价促销
+
+```java
+@Service
+public class AiPricingAdvisor {
+    public PricingAdvice getAdvice(Long drugId, BigDecimal purchasePrice, String region) {
+        // 1. 获取该药品的市场零售价分布
+        // 2. 获取医保支付价
+        // 3. 计算毛利率区间
+        // 4. 调用LLM生成定价建议
+        // 5. 返回建议零售价 + 理由
+    }
+}
+```
+
+### 8.13 AI库存优化
+
+**场景**: 药店库存管理直接影响资金周转和药品效期损耗。
+
+**AI能力**:
+- 基于销售预测 + 补货周期 + 资金约束，优化库存周转率
+- 效期预警：临近过期的药品优先推荐促销或调拨
+- 缺货风险预测：哪些药品可能断货，建议提前备货
+- 滞销品识别：长期不动销的药品建议退换或促销
+- 安全库存动态调整：根据销售波动自动调整安全库存阈值
+
+```java
+@Service
+public class AiInventoryOptimizer {
+    public InventoryAdvice optimize(String userId) {
+        // 1. 获取当前库存数据
+        // 2. 分析销售速度和波动
+        // 3. 检查效期分布
+        // 4. 调用LLM生成优化建议
+        // 5. 返回：需补货清单、需促销清单、需退货清单
+    }
+}
+```
+
+**新增数据表**:
+```sql
+CREATE TABLE yy_inventory_alert (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    drug_id BIGINT NOT NULL COMMENT '药品ID',
+    alert_type VARCHAR(20) NOT NULL COMMENT '预警类型: low_stock/expiry_risk/slow_moving/overstock',
+    severity VARCHAR(10) NOT NULL COMMENT '严重程度: low/medium/high',
+    current_quantity INT COMMENT '当前库存',
+    suggested_action VARCHAR(50) COMMENT '建议操作: reorder/promote/return/adjust',
+    ai_detail TEXT COMMENT 'AI分析详情',
+    status VARCHAR(20) DEFAULT 'active' COMMENT 'active/resolved/ignored',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_user_type (user_id, alert_type),
+    KEY idx_severity (severity)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI库存预警表';
+```
+
+### 8.14 AI智能客服/采购助手
+
+**场景**: 药店采购员在使用平台时有各种问题，需要即时解答。
+
+**AI能力**:
+- 对话式采购："帮我找一下最便宜的阿莫西林，要现货的"
+- 自动回答药品相关问题（用法、适应症、禁忌、相互作用）
+- 采购异常处理（价格异常波动提醒、订单问题自动排查）
+- 平台功能引导（如何绑定账号、如何使用比价功能）
+- 多轮对话支持，记住上下文
+
+```java
+@Service
+public class AiChatAssistant {
+    public ChatResponse chat(String userId, String message, String sessionId) {
+        // 1. 获取对话历史
+        // 2. 判断意图（采购/咨询/投诉/引导）
+        // 3. 根据意图调用对应AI模块
+        // 4. 调用LLM生成回复
+        // 5. 返回回复 + 可能的操作建议
+    }
+}
+```
+
+**技术方案**: 使用通义千问的多轮对话能力，结合Function Calling实现工具调用（搜索药品、查询价格、下单等）。
+
+**新增数据表**:
+```sql
+CREATE TABLE yy_chat_session (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    user_id BIGINT NOT NULL COMMENT '用户ID',
+    session_id VARCHAR(64) NOT NULL COMMENT '会话ID',
+    messages JSON NOT NULL COMMENT '对话消息历史',
+    intent VARCHAR(50) COMMENT '识别的意图',
+    status VARCHAR(20) DEFAULT 'active' COMMENT 'active/closed',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_session (session_id),
+    KEY idx_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI客服会话表';
 ```
 
 ---
@@ -744,15 +1014,27 @@ CREATE TABLE yy_ai_prompt_template (
 4. 更新所有@Autowired引用
 5. 验证前端API路径不变
 
-### Phase 6: AI能力层 (第5-6周)
+### Phase 6: AI能力层 - 核心 (第5-6周)
 
-1. 实现 AiGateway（通义千问API集成）
+1. 实现 AiGateway（通义千问API集成 + 模型路由 + 缓存）
 2. 创建 yy_ai_prompt_template 表和管理界面
 3. 实现 AiMatchEngine（增强融合引擎）
 4. 实现 AiAdvisor（比价顾问）
 5. 实现 AiEvaluator（药品评测）
 6. 实现 AiSearchEngine（智能搜索）
 7. C端前端集成AI功能展示
+
+### Phase 7: AI能力层 - 扩展 (第7-9周)
+
+1. 实现 AiPurchasePlanner（采购计划自动生成）+ yy_purchase_plan表
+2. 实现 AiComplianceChecker（合规检查）+ yy_compliance_check表
+3. 实现 AiMarketIntelligence（市场情报）
+4. 实现 AiCrossSell（关联推荐）
+5. 实现 AiImageSearch（图片识别购药）+ 通义千问VL集成
+6. 实现 AiPricingAdvisor（定价建议）
+7. 实现 AiInventoryOptimizer（库存优化）+ yy_inventory_alert表
+8. 实现 AiChatAssistant（智能客服）+ yy_chat_session表 + Function Calling
+9. C端前端集成全部AI功能
 
 ---
 
@@ -811,11 +1093,22 @@ CREATE TABLE yy_ai_prompt_template (
 2. 验证5个平台的数据采集不受影响
 3. 验证新平台接入只需数据库配置+manifest.json加域名
 
-### 12.4 AI能力验证
+### 12.4 AI能力验证 - 核心模块
 
-1. 验证AiGateway调用通义千问API
+1. 验证AiGateway调用通义千问API + 结果缓存
 2. 验证Prompt模板管理
 3. 验证AI匹配对fusion准确率的提升
 4. 验证AI比价顾问的建议质量
 5. 验证AI药品评测的输出
 6. 验证AI智能搜索的语义理解能力
+
+### 12.5 AI能力验证 - 扩展模块
+
+1. 验证AI采购计划的合理性（与人工计划对比）
+2. 验证AI合规检查的准确性（批准文号、供应商资质）
+3. 验证AI市场情报的时效性和准确性
+4. 验证AI关联推荐的转化率
+5. 验证AI图片识别的准确率（通义千问VL）
+6. 验证AI定价建议与市场价的偏差
+7. 验证AI库存预警的及时性
+8. 验证AI智能客服的多轮对话和Function Calling
