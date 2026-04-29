@@ -29,7 +29,8 @@
 2. 引入药品主数据 + 多信号融合 + AI匹配，大幅提升融合准确率
 3. 平台适配器模式，新平台接入变为配置任务
 4. Chrome扩展模块化，支持动态加载平台配置
-5. AI能力层（12个模块）：药品匹配、比价顾问、药品评测、智能搜索、采购计划、合规检查、市场情报、关联推荐、图片识别、定价建议、库存优化、智能客服
+5. 医药知识库：自建 + NMPA/医保目录/药智网等外部数据源，RAG架构
+6. AI能力层（20个模块）：药品匹配、比价顾问、药品评测、智能搜索、采购计划、合规检查、市场情报、关联推荐、图片识别、定价建议、库存优化、智能客服、自动化运营、数据清洗、自然语言报表、谈判助手、异常检测、用户画像
 6. 使用通义千问/百炼作为LLM服务
 
 ---
@@ -78,7 +79,7 @@
 | user | 用户、会员、平台绑定 | YyUser, YyMemberTier, YyUserPlatform |
 | collection | 数据采集入库管道 | DataIngestPipeline |
 | referral | 推荐奖励 | YyReferralConfig, YyReferralReward |
-| ai | AI能力层（12个AI模块） | AiGateway, AiMatchEngine, AiAdvisor, AiEvaluator, AiSearchEngine, AiPurchasePlanner, AiComplianceChecker, AiMarketIntelligence, AiCrossSell, AiImageSearch, AiPricingAdvisor, AiInventoryOptimizer, AiChatAssistant |
+| ai | AI能力层（20个AI模块） | AiGateway, AiMatchEngine, AiAdvisor, AiEvaluator, AiSearchEngine, AiPurchasePlanner, AiComplianceChecker, AiMarketIntelligence, AiCrossSell, AiImageSearch, AiPricingAdvisor, AiInventoryOptimizer, AiChatAssistant, AiOperationAssistant, AiDataCleaner, AiReportEngine, AiNegotiationAdvisor, AiAnomalyDetector, AiUserProfile |
 
 ---
 
@@ -138,7 +139,7 @@ com.ruoyi.yy/
     mapper/
     service/
     service/impl/
-  ai/                          # AI能力域（12个AI模块）
+  ai/                          # AI能力域（20个AI模块）
     gateway/                   # AiGateway (统一AI调用网关)
     match/                     # AiMatchEngine (AI药品匹配)
     advisor/                   # AiAdvisor (AI比价顾问)
@@ -152,6 +153,12 @@ com.ruoyi.yy/
     pricing/                   # AiPricingAdvisor (AI定价建议)
     inventory/                 # AiInventoryOptimizer (AI库存优化)
     chat/                      # AiChatAssistant (AI智能客服)
+    operation/                 # AiOperationAssistant (AI自动化运营)
+    cleaner/                   # AiDataCleaner (AI数据清洗)
+    report/                    # AiReportEngine (AI自然语言报表)
+    negotiation/               # AiNegotiationAdvisor (AI谈判助手)
+    anomaly/                   # AiAnomalyDetector (AI异常检测)
+    profile/                   # AiUserProfile (AI用户画像)
     prompt/                    # PromptTemplate (Prompt模板管理)
     config/                    # AI配置
   common/                      # 共享组件
@@ -554,7 +561,127 @@ yy_field_mapping表新增字段:
 
 ---
 
-## 8. AI能力层
+## 8. 医药知识库
+
+### 8.0.1 知识库架构
+
+采用RAG（检索增强生成）架构，为所有AI模块提供知识支撑：
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    医药知识库 (RAG架构)                        │
+│                                                              │
+│  ┌─ 结构化数据层 ──────────────────────────────────────────┐ │
+│  │  yy_drug_master (药品主数据：编码、通用名、厂家、规格)    │ │
+│  │  yy_drug_monograph (药品专论：适应症、禁忌、相互作用)     │ │
+│  │  yy_compliance_data (合规数据：批准文号、GSP/GMP资质)     │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                              │
+│  ┌─ 向量检索层（可选，初期可用MySQL全文索引替代）────────────┐ │
+│  │  Milvus/Qdrant/Chroma                                    │ │
+│  │  存储药品专论的向量嵌入，支持语义搜索                      │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                              │
+│  ┌─ 外部数据源 ────────────────────────────────────────────┐ │
+│  │  NMPA药监局 (批准文号、厂家、资质) — 免费爬取/API         │ │
+│  │  国家医保目录 (医保分类、支付标准) — 免费下载              │ │
+│  │  国家基本药物目录 — 免费下载                              │ │
+│  │  药智网 API (批文查询、中标价) — 基础版免费               │ │
+│  │  丁香园用药助手 (药物相互作用) — 付费                     │ │
+│  │  B2B平台采集数据 (说明书、详情页) — 已有采集能力          │ │
+│  └──────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 8.0.2 数据获取策略
+
+**第1层：免费公开数据（立即可用）**
+- NMPA国家药监局药品数据库 → 批准文号、厂家、规格、剂型
+- 国家医保目录 → 医保分类、支付标准
+- 国家基本药物目录 → 基药标识
+- Wikidata/Wikipedia → 药品通用知识
+
+**第2层：采集积累数据（随使用增长）**
+- 各B2B平台采集的商品数据 → 价格、库存、销量
+- 药品说明书（从平台商品详情页采集）→ 适应症、用法、禁忌
+- 用户行为数据 → 搜索、采购、评价
+
+**第3层：专业数据库（按需接入）**
+- 药智网API → 批文查询、中标价、一致性评价
+- 丁香园用药助手API → 专业药品信息、药物相互作用
+- 米内网 → 市场数据、销售排名
+- OpenFDA / DrugBank → 国际药品数据
+
+**第4层：AI生成+人工审核**
+- LLM基于已有数据生成药品专论摘要
+- 人工药剂师审核校正
+- 用户反馈纠错
+
+### 8.0.3 知识库数据表
+
+**yy_drug_monograph** — 药品专论知识库:
+
+```sql
+CREATE TABLE yy_drug_monograph (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    drug_id BIGINT NOT NULL COMMENT '关联yy_drug_master',
+    indications TEXT COMMENT '适应症',
+    contraindications TEXT COMMENT '禁忌症',
+    dosage_administration TEXT COMMENT '用法用量',
+    adverse_reactions TEXT COMMENT '不良反应',
+    drug_interactions TEXT COMMENT '药物相互作用',
+    special_populations TEXT COMMENT '特殊人群(孕妇/儿童/老人)',
+    storage_conditions VARCHAR(200) COMMENT '储存条件',
+    pharmacology TEXT COMMENT '药理作用',
+    clinical_evidence TEXT COMMENT '临床证据',
+    summary TEXT COMMENT 'AI生成的摘要',
+    source VARCHAR(50) COMMENT '数据来源: nmpa/manual/wiki/llm',
+    confidence DECIMAL(3,2) DEFAULT 1.00 COMMENT '数据置信度',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_drug (drug_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='药品专论知识库';
+```
+
+**yy_compliance_data** — 合规数据:
+
+```sql
+CREATE TABLE yy_compliance_data (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    approval_number VARCHAR(100) NOT NULL COMMENT '批准文号',
+    drug_name VARCHAR(200) COMMENT '药品名称',
+    manufacturer VARCHAR(200) COMMENT '生产厂家',
+    specification VARCHAR(200) COMMENT '规格',
+    dosage_form VARCHAR(50) COMMENT '剂型',
+    approval_date DATE COMMENT '批准日期',
+    validity_period DATE COMMENT '有效期',
+    gmp_certified TINYINT DEFAULT 0 COMMENT 'GMP认证',
+    gmp_expiry DATE COMMENT 'GMP有效期',
+    consistency_evaluation TINYINT DEFAULT 0 COMMENT '一致性评价通过',
+    medical_insurance_type VARCHAR(50) COMMENT '医保类型',
+    essential_drug TINYINT DEFAULT 0 COMMENT '是否基药',
+    data_source VARCHAR(50) COMMENT '数据来源: nmpa/yaozhi/manual',
+    last_synced_at DATETIME COMMENT '最近同步时间',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_approval (approval_number),
+    KEY idx_manufacturer (manufacturer)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='合规数据表';
+```
+
+### 8.0.4 知识库初始化流程
+
+1. **NMPA数据导入**: 爬取NMPA药品数据库，批量导入yy_compliance_data
+2. **医保目录导入**: 下载国家医保目录Excel，导入yy_drug_master.medicare_type
+3. **B2B数据回填**: 从已采集的yy_product_snapshot中提取说明书信息，填充yy_drug_monograph
+4. **LLM增强**: 对已有数据调用LLM生成结构化摘要
+5. **持续更新**: Chrome扩展采集详情页时同步采集说明书，定时同步NMPA数据
+
+---
+
+## 9. AI能力层
 
 ### 8.1 AI Gateway（统一网关）
 
@@ -952,6 +1079,157 @@ public class AiChatAssistant {
 
 **技术方案**: 使用通义千问的多轮对话能力，结合Function Calling实现工具调用（搜索药品、查询价格、下单等）。
 
+### 8.15 AI自动化运营
+
+**场景**: 平台运营人员需要持续产出营销内容和促销方案。
+
+**AI能力**:
+- 自动生成药品营销文案（适合C端展示的商品描述、卖点提炼）
+- 促销方案生成：基于库存+销售数据，推荐促销组合和力度
+- 节日/季节性营销日历自动生成（流感季、换季、节假日）
+- 会员活动策划建议
+
+```java
+@Service
+public class AiOperationAssistant {
+    public MarketingContent generateCopy(Long drugId, String style) { ... }
+    public PromotionPlan generatePromotion(String category, String period) { ... }
+    public MarketingCalendar generateCalendar(int year, int month) { ... }
+}
+```
+
+### 8.16 AI数据清洗与标准化
+
+**场景**: 历史采集数据中存在大量脏数据（错别字、格式不一致、缺失值）。
+
+**AI能力**:
+- 批量标准化厂家名（"同仁堂" vs "北京同仁堂股份有限公司"）
+- 规格格式统一（"0.25g×12片" vs "0.25g*12s"）
+- 识别并修复数据不一致（同一药品不同平台的通用名不同）
+- 缺失字段智能填充（基于已有字段推断缺失的69码、批准文号等）
+
+```java
+@Service
+public class AiDataCleaner {
+    public CleanResult cleanProductData(List<YyProductSnapshot> snapshots) {
+        // 1. 批量发送给LLM进行标准化
+        // 2. 对比知识库中的标准数据
+        // 3. 生成清洗建议
+        // 4. 自动或人工确认后执行清洗
+    }
+}
+```
+
+### 8.17 AI自然语言报表
+
+**场景**: 管理员需要分析数据但不熟悉SQL或BI工具。
+
+**AI能力**:
+- 自然语言查询："上个月阿莫西林在各平台的价格变化趋势" → 自动生成图表
+- 异常发现："哪些药品这个月销量下降了超过20%" → 自动分析
+- 定时报告：每周自动生成采购分析报告
+- 支持多种图表类型（折线图、柱状图、饼图）
+
+```java
+@Service
+public class AiReportEngine {
+    public ReportResult generateReport(String naturalLanguageQuery) {
+        // 1. 调用LLM将自然语言转换为SQL/数据查询
+        // 2. 执行查询获取数据
+        // 3. 调用LLM生成分析结论
+        // 4. 返回数据 + 图表配置 + 文字分析
+    }
+}
+```
+
+### 8.18 AI供应商谈判助手
+
+**场景**: 大型药店需要与供应商谈判采购价格和条件。
+
+**AI能力**:
+- 分析历史采购量和价格，计算议价空间
+- 对比同类供应商的价格和服务
+- 生成谈判策略建议（批量折扣、账期、返利）
+- 市场价格基准参考
+
+```java
+@Service
+public class AiNegotiationAdvisor {
+    public NegotiationStrategy advise(String userId, Long drugId, String supplierCode) {
+        // 1. 分析用户历史采购数据
+        // 2. 对比市场价格
+        // 3. 计算议价空间
+        // 4. 生成谈判策略
+    }
+}
+```
+
+### 8.19 AI异常检测与预警
+
+**场景**: 平台运营需要及时发现异常情况。
+
+**AI能力**:
+- 价格异常波动预警（某药品突然涨价/降价超过阈值）
+- 库存异常预警（某平台突然大量缺货）
+- 订单异常检测（异常采购模式、疑似刷单）
+- 供应商异常预警（发货延迟增加、退货率上升）
+
+```java
+@Service
+public class AiAnomalyDetector {
+    public List<AnomalyAlert> detect() {
+        // 1. 定时扫描价格、库存、订单数据
+        // 2. 基于统计模型检测异常
+        // 3. 调用LLM分析异常原因
+        // 4. 生成预警通知
+    }
+}
+```
+
+**新增数据表**:
+```sql
+CREATE TABLE yy_anomaly_alert (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    alert_type VARCHAR(30) NOT NULL COMMENT 'price/stock/order/supplier',
+    target_type VARCHAR(30) NOT NULL COMMENT 'drug/platform/supplier',
+    target_id BIGINT NOT NULL COMMENT '目标ID',
+    severity VARCHAR(10) NOT NULL COMMENT 'low/medium/high/critical',
+    description VARCHAR(500) NOT NULL COMMENT '异常描述',
+    detail JSON COMMENT '异常详情',
+    ai_analysis TEXT COMMENT 'AI分析原因',
+    status VARCHAR(20) DEFAULT 'active' COMMENT 'active/acknowledged/resolved',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_type_status (alert_type, status),
+    KEY idx_severity (severity)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI异常预警表';
+```
+
+### 8.20 AI用户画像与精准营销
+
+**场景**: 不同类型的药店有不同的采购需求，需要精准推荐。
+
+**AI能力**:
+- 基于采购行为的药店分群（大型连锁/社区药店/诊所/中医馆）
+- 个性化推荐：根据药店类型推荐适合的药品组合
+- 流失预警：识别可能不再使用平台的用户
+- 生命周期管理：新用户引导、活跃用户激励、沉默用户唤醒
+
+```java
+@Service
+public class AiUserProfile {
+    public UserProfile analyze(String userId) {
+        // 1. 分析用户采购历史
+        // 2. 聚类分群
+        // 3. 生成用户画像标签
+        // 4. 个性化推荐策略
+    }
+    public List<String> predictChurn() {
+        // 识别流失风险用户
+    }
+}
+```
+
 **新增数据表**:
 ```sql
 CREATE TABLE yy_chat_session (
@@ -1014,27 +1292,44 @@ CREATE TABLE yy_chat_session (
 4. 更新所有@Autowired引用
 5. 验证前端API路径不变
 
-### Phase 6: AI能力层 - 核心 (第5-6周)
+### Phase 6: 医药知识库 + AI基础 (第5-6周)
 
-1. 实现 AiGateway（通义千问API集成 + 模型路由 + 缓存）
-2. 创建 yy_ai_prompt_template 表和管理界面
-3. 实现 AiMatchEngine（增强融合引擎）
-4. 实现 AiAdvisor（比价顾问）
-5. 实现 AiEvaluator（药品评测）
-6. 实现 AiSearchEngine（智能搜索）
+1. 创建 yy_drug_monograph、yy_compliance_data 表
+2. NMPA药品数据爬取和导入脚本
+3. 国家医保目录数据导入
+4. 从已有B2B采集数据中提取说明书信息
+5. 实现 AiGateway（通义千问API集成 + 模型路由 + 缓存）
+6. 创建 yy_ai_prompt_template 表和管理界面
+
+### Phase 7: AI核心模块 (第7-8周)
+
+1. 实现 AiMatchEngine（增强融合引擎）
+2. 实现 AiAdvisor（比价顾问）
+3. 实现 AiEvaluator（药品评测）+ 知识库RAG
+4. 实现 AiSearchEngine（智能搜索）
+5. 实现 AiComplianceChecker（合规检查）+ NMPA数据对接
+6. 实现 AiDataCleaner（数据清洗标准化）
 7. C端前端集成AI功能展示
 
-### Phase 7: AI能力层 - 扩展 (第7-9周)
+### Phase 8: AI业务模块 (第9-10周)
 
 1. 实现 AiPurchasePlanner（采购计划自动生成）+ yy_purchase_plan表
-2. 实现 AiComplianceChecker（合规检查）+ yy_compliance_check表
-3. 实现 AiMarketIntelligence（市场情报）
-4. 实现 AiCrossSell（关联推荐）
-5. 实现 AiImageSearch（图片识别购药）+ 通义千问VL集成
-6. 实现 AiPricingAdvisor（定价建议）
-7. 实现 AiInventoryOptimizer（库存优化）+ yy_inventory_alert表
-8. 实现 AiChatAssistant（智能客服）+ yy_chat_session表 + Function Calling
-9. C端前端集成全部AI功能
+2. 实现 AiMarketIntelligence（市场情报）
+3. 实现 AiCrossSell（关联推荐）
+4. 实现 AiPricingAdvisor（定价建议）
+5. 实现 AiInventoryOptimizer（库存优化）+ yy_inventory_alert表
+6. 实现 AiImageSearch（图片识别购药）+ 通义千问VL集成
+7. C端前端集成业务AI功能
+
+### Phase 9: AI高级模块 (第11-12周)
+
+1. 实现 AiChatAssistant（智能客服）+ yy_chat_session表 + Function Calling + 知识库RAG
+2. 实现 AiOperationAssistant（自动化运营）
+3. 实现 AiReportEngine（自然语言报表）
+4. 实现 AiNegotiationAdvisor（供应商谈判助手）
+5. 实现 AiAnomalyDetector（异常检测预警）+ yy_anomaly_alert表
+6. 实现 AiUserProfile（用户画像与精准营销）
+7. C端和后台前端集成全部AI功能
 
 ---
 
