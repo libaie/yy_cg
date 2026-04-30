@@ -1,0 +1,41 @@
+CREATE TABLE IF NOT EXISTS yy_drug_master (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    drug_code VARCHAR(64) NOT NULL COMMENT '系统生成的唯一药品编码',
+    common_name VARCHAR(200) NOT NULL COMMENT '通用名',
+    generic_name VARCHAR(200) DEFAULT NULL COMMENT '化学名/INN名',
+    barcode VARCHAR(64) DEFAULT NULL COMMENT '主条码（69码）',
+    approval_number VARCHAR(100) DEFAULT NULL COMMENT '批准文号',
+    manufacturer VARCHAR(200) NOT NULL COMMENT '标准厂家名',
+    specification VARCHAR(200) NOT NULL COMMENT '标准规格',
+    dosage_form VARCHAR(50) DEFAULT NULL COMMENT '剂型',
+    category_l1 VARCHAR(100) DEFAULT NULL COMMENT '一级分类',
+    category_l2 VARCHAR(100) DEFAULT NULL COMMENT '二级分类',
+    is_prescription TINYINT DEFAULT 0 COMMENT '是否处方药',
+    medicare_type VARCHAR(50) DEFAULT NULL COMMENT '医保类型',
+    status TINYINT DEFAULT 1 COMMENT '状态 1启用 0停用',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_drug_code (drug_code),
+    UNIQUE KEY uk_approval_number (approval_number),
+    KEY idx_barcode (barcode),
+    KEY idx_common_name (common_name),
+    KEY idx_manufacturer (manufacturer)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='药品主数据表';
+
+CREATE TABLE IF NOT EXISTS yy_drug_alias (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    drug_id BIGINT NOT NULL COMMENT '关联yy_drug_master.id',
+    platform_code VARCHAR(50) NOT NULL COMMENT '平台编码',
+    platform_product_name VARCHAR(500) DEFAULT NULL COMMENT '平台商品名',
+    platform_manufacturer VARCHAR(200) DEFAULT NULL COMMENT '平台厂家名',
+    platform_specification VARCHAR(200) DEFAULT NULL COMMENT '平台规格',
+    platform_sku_id VARCHAR(128) DEFAULT NULL COMMENT '平台SKU ID',
+    confidence DECIMAL(3,2) DEFAULT 1.00 COMMENT '匹配置信度',
+    match_method VARCHAR(20) NOT NULL COMMENT '匹配方式: manual/barcode/approval/fuzzy/ai',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_verified_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '最后验证时间，用于过期清理',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_platform_sku (platform_code, platform_sku_id),
+    KEY idx_drug_id (drug_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='药品平台别名表';
