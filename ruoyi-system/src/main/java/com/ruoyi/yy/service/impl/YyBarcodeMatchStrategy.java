@@ -36,6 +36,9 @@ public class YyBarcodeMatchStrategy implements IYyMatchStrategy {
 
     @Override
     public YyMatchResult match(YyProductSnapshot snapshot, List<YyDrugMaster> candidates) {
+        if (snapshot == null) {
+            return YyMatchResult.failure("Snapshot is null");
+        }
         String barcode = snapshot.getBarcode();
         if (barcode == null || barcode.trim().isEmpty()) {
             return YyMatchResult.failure("No barcode on snapshot");

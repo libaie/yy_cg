@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 public class YyApprovalNumberMatchStrategy implements IYyMatchStrategy {
 
     private static final Pattern APPROVAL_PATTERN =
-        Pattern.compile("(?:国药准字)?([A-Za-z]\\d{8})");
+        Pattern.compile("^(?:国药准字)?([A-Za-z]\\d{8})$");
 
     private final IYyDrugMasterService drugMasterService;
 
@@ -44,6 +44,9 @@ public class YyApprovalNumberMatchStrategy implements IYyMatchStrategy {
 
     @Override
     public YyMatchResult match(YyProductSnapshot snapshot, List<YyDrugMaster> candidates) {
+        if (snapshot == null) {
+            return YyMatchResult.failure("Snapshot is null");
+        }
         String raw = snapshot.getApprovalNumber();
         if (raw == null || raw.trim().isEmpty()) {
             return YyMatchResult.failure("No approval number on snapshot");
@@ -75,7 +78,7 @@ public class YyApprovalNumberMatchStrategy implements IYyMatchStrategy {
      */
     static String normalizeApprovalNumber(String raw) {
         Matcher m = APPROVAL_PATTERN.matcher(raw);
-        if (m.find()) {
+        if (m.matches()) {
             return m.group(1).toUpperCase();
         }
         return null;
