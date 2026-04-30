@@ -9,8 +9,10 @@ CREATE TABLE IF NOT EXISTS yy_ai_prompt_template (
     temperature DECIMAL(3,2) DEFAULT 0.1 COMMENT '温度参数',
     max_tokens INT DEFAULT 1000 COMMENT '最大token数',
     status TINYINT DEFAULT 1 COMMENT '状态',
-    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    create_by VARCHAR(64) DEFAULT '' COMMENT '创建者',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_by VARCHAR(64) DEFAULT '' COMMENT '更新者',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (id),
     UNIQUE KEY uk_template_code (template_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI Prompt模板表';
