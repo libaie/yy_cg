@@ -3,7 +3,8 @@
 > 日期: 2026-04-30
 > 状态: 全面审查通过 (/autoplan 4-phase review)
 > 范围: yy模块架构重构 + AI能力层（缩减至5个核心模块）
-> 审查结果: 5 P0, 10 P1, 7 P2/P3 — 详见审查报告
+> 审查结果: 5 P0（3已修复）, 10 P1（1已修复）, 7 P2/P3 — 详见审查报告
+> 二次审查: /plan-eng-review 2026-04-29 — 架构/代码质量/测试/性能 4维审查
 
 ---
 
@@ -1417,20 +1418,20 @@ CREATE TABLE yy_chat_session (
 
 ### 13.1 P0 必须修复项（实施前）
 
-| # | 问题 | 来源 | 修复方案 |
-|---|------|------|----------|
-| 1 | `YyProductFusionGroup.setGenericName()` 抛出 `UnsupportedOperationException` | Eng CQ-10 | 实现 setter（1行代码） |
-| 2 | `handleAppendFetch()` 引用未定义变量 `apiCode`/`rawData` | Eng CQ-8 | 从调用方传入变量 |
-| 3 | 整个代码库零自动化测试 | Eng TR-1 | 重构前先为 `ingest()` 添加集成测试 |
-| 4 | N+1 查询：200产品批次产生550次DB往返 | Eng PR-1 | 批量化：`SELECT ... WHERE fusion_key IN (...)` + MyBatis `<foreach>` |
-| 5 | LLM调用无熔断/超时/降级 | Eng AR-5 | 5s超时、指数退避、熔断器（3次失败→跳过5分钟）、降级到审核队列 |
+| # | 问题 | 来源 | 修复方案 | 状态 |
+|---|------|------|----------|------|
+| 1 | `YyProductFusionGroup.setGenericName()` 抛出 `UnsupportedOperationException` | Eng CQ-10 | 实现 setter（1行代码） | **已修复** — 2026-04-29 验证 |
+| 2 | `handleAppendFetch()` 引用未定义变量 `apiCode`/`rawData` | Eng CQ-8 | 从调用方传入变量 | **已修复** — 2026-04-29 验证 |
+| 3 | 整个代码库零自动化测试 | Eng TR-1 | 重构前先为 `ingest()` 添加集成测试 | 待实施 |
+| 4 | N+1 查询：200产品批次产生550次DB往返 | Eng PR-1 | 批量化：`SELECT ... WHERE fusion_key IN (...)` + MyBatis `<foreach>` | 待实施 |
+| 5 | LLM调用无熔断/超时/降级 | Eng AR-5 | 5s超时、指数退避、熔断器（3次失败→跳过5分钟）、降级到审核队列 | 待实施 |
 
 ### 13.2 P1 实施中修复项
 
-| # | 问题 | 修复方案 |
-|---|------|----------|
-| 1 | `@Transactional` 缺少 `rollbackFor = Exception.class` | 添加注解参数 |
-| 2 | `hashCode()` 降级可产生负数 key | 移除降级，让 MD5 异常传播 |
+| # | 问题 | 修复方案 | 状态 |
+|---|------|----------|------|
+| 1 | `@Transactional` 缺少 `rollbackFor = Exception.class` | 添加注解参数 | **已修复** — 2026-04-29 验证 |
+| 2 | `hashCode()` 降级可产生负数 key | 移除降级，让 MD5 异常传播 | 待实施 |
 | 3 | `YyDataIngestDTO` 无输入校验 | 添加 `@Valid`/`@NotBlank` 注解 |
 | 4 | 域间循环依赖风险 | 定义单向依赖 DAG：`ai→fusion→product→platform` |
 | 5 | 策略链无早停优化；候选集获取策略未定义 | 添加 `stopOnMatch()`；按归一化通用名前缀索引 |

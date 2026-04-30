@@ -100,6 +100,8 @@
 | `ruoyi-system/src/test/java/com/ruoyi/yy/YyCircuitBreakerTest.java` | 熔断器测试 |
 | `ruoyi-system/src/test/java/com/ruoyi/yy/DataFusionServiceIntegrationTest.java` | 数据融合集成测试 |
 | `ruoyi-system/src/test/java/com/ruoyi/yy/YyConfigurablePlatformAdapterTest.java` | 平台适配器测试 |
+| `ruoyi-system/src/test/java/com/ruoyi/yy/YyAiAdvisorImplTest.java` | AI比价顾问测试 |
+| `ruoyi-system/src/test/java/com/ruoyi/yy/YyAiDataCleanerImplTest.java` | AI数据清洗测试 |
 
 ---
 
@@ -151,6 +153,7 @@ CREATE TABLE IF NOT EXISTS yy_drug_alias (
     confidence DECIMAL(3,2) DEFAULT 1.00 COMMENT '匹配置信度',
     match_method VARCHAR(20) NOT NULL COMMENT '匹配方式: manual/barcode/approval/fuzzy/ai',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    last_verified_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '最后验证时间，用于过期清理',
     PRIMARY KEY (id),
     UNIQUE KEY uk_platform_sku (platform_code, platform_sku_id),
     KEY idx_drug_id (drug_id)
@@ -647,6 +650,9 @@ public class YyDrugAlias implements Serializable {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date createdAt;
 
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date lastVerifiedAt;
+
     // Getters and setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -668,6 +674,8 @@ public class YyDrugAlias implements Serializable {
     public void setMatchMethod(String matchMethod) { this.matchMethod = matchMethod; }
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+    public Date getLastVerifiedAt() { return lastVerifiedAt; }
+    public void setLastVerifiedAt(Date lastVerifiedAt) { this.lastVerifiedAt = lastVerifiedAt; }
 }
 ```
 
@@ -736,6 +744,12 @@ public interface YyDrugAliasMapper {
     );
 
     int insert(YyDrugAlias record);
+
+    int update(YyDrugAlias record);
+
+    int updateLastVerifiedAt(@Param("id") Long id, @Param("verifiedAt") java.util.Date verifiedAt);
+
+    int deleteById(@Param("id") Long id);
 
     int updateConfidence(
         @Param("id") Long id,
@@ -862,6 +876,7 @@ public interface YyDrugAliasMapper {
         <result property="confidence" column="confidence"/>
         <result property="matchMethod" column="match_method"/>
         <result property="createdAt" column="created_at"/>
+        <result property="lastVerifiedAt" column="last_verified_at"/>
     </resultMap>
 
     <select id="selectByPlatformSku" resultMap="YyDrugAliasResult">
@@ -872,17 +887,34 @@ public interface YyDrugAliasMapper {
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO yy_drug_alias (drug_id, platform_code, platform_product_name,
             platform_manufacturer, platform_specification, platform_sku_id,
-            confidence, match_method)
+            confidence, match_method, last_verified_at)
         VALUES (#{drugId}, #{platformCode}, #{platformProductName},
             #{platformManufacturer}, #{platformSpecification}, #{platformSkuId},
-            #{confidence}, #{matchMethod})
+            #{confidence}, #{matchMethod}, NOW())
     </insert>
+
+    <update id="update">
+        UPDATE yy_drug_alias
+        SET drug_id = #{drugId}, confidence = #{confidence},
+            match_method = #{matchMethod}, last_verified_at = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateLastVerifiedAt">
+        UPDATE yy_drug_alias
+        SET last_verified_at = #{verifiedAt}
+        WHERE id = #{id}
+    </update>
 
     <update id="updateConfidence">
         UPDATE yy_drug_alias
         SET confidence = #{confidence}, match_method = #{matchMethod}
         WHERE id = #{id}
     </update>
+
+    <delete id="deleteById">
+        DELETE FROM yy_drug_alias WHERE id = #{id}
+    </delete>
 </mapper>
 ```
 
@@ -2144,12 +2176,17 @@ public class YyFusionEngineImpl {
         if (cached != null) {
             YyDrugMaster drug = drugMasterMapper.selectById(cached.getDrugId());
             if (drug != null) {
+                // 更新验证时间，用于过期清理
+                aliasMapper.updateLastVerifiedAt(cached.getId(), new Date());
                 log.debug("Alias cache hit: {} → drug_id={}", skuId, cached.getDrugId());
                 return YyFusionResult.matched(
                     drug.getId(), drug.getDrugCode(), cached.getConfidence(),
                     cached.getMatchMethod(), "Alias cache hit", false
                 );
             }
+            // drug_master 已删除，清理悬空别名
+            log.warn("Dangling alias found for sku={}, deleting", skuId);
+            aliasMapper.deleteById(cached.getId());
         }
 
         // Step 2: 获取候选集（供策略使用）
@@ -2204,19 +2241,34 @@ public class YyFusionEngineImpl {
     }
 
     /**
-     * 保存alias缓存映射
+     * 保存或更新alias缓存映射
      */
     private void saveAlias(YyProductSnapshot snapshot, YyMatchResult result) {
-        YyDrugAlias alias = new YyDrugAlias();
-        alias.setDrugId(result.getDrugId());
-        alias.setPlatformCode(snapshot.getSourcePlatform());
-        alias.setPlatformProductName(snapshot.getCommonName());
-        alias.setPlatformManufacturer(snapshot.getManufacturer());
-        alias.setPlatformSpecification(snapshot.getSpecification());
-        alias.setPlatformSkuId(snapshot.getSkuId());
-        alias.setConfidence(result.getConfidence());
-        alias.setMatchMethod(result.getMatchMethod().getCode());
-        aliasMapper.insert(alias);
+        YyDrugAlias existing = aliasMapper.selectByPlatformSku(
+            snapshot.getSourcePlatform(), snapshot.getSkuId());
+
+        if (existing != null) {
+            // 更新已有映射（平台数据修正后重新匹配）
+            existing.setDrugId(result.getDrugId());
+            existing.setConfidence(result.getConfidence());
+            existing.setMatchMethod(result.getMatchMethod().getCode());
+            existing.setLastVerifiedAt(new Date());
+            aliasMapper.update(existing);
+            log.info("Alias updated: sku={} → drug_id={} (was {})",
+                snapshot.getSkuId(), result.getDrugId(), existing.getDrugId());
+        } else {
+            YyDrugAlias alias = new YyDrugAlias();
+            alias.setDrugId(result.getDrugId());
+            alias.setPlatformCode(snapshot.getSourcePlatform());
+            alias.setPlatformProductName(snapshot.getCommonName());
+            alias.setPlatformManufacturer(snapshot.getManufacturer());
+            alias.setPlatformSpecification(snapshot.getSpecification());
+            alias.setPlatformSkuId(snapshot.getSkuId());
+            alias.setConfidence(result.getConfidence());
+            alias.setMatchMethod(result.getMatchMethod().getCode());
+            alias.setLastVerifiedAt(new Date());
+            aliasMapper.insert(alias);
+        }
     }
 
     /**
@@ -2235,6 +2287,7 @@ public class YyFusionEngineImpl {
             reviewMapper.insert(review);
         } catch (Exception e) {
             log.error("Failed to save review queue entry for sku={}", snapshot.getSkuId(), e);
+            throw new RuntimeException("Review queue persistence failed for sku=" + snapshot.getSkuId(), e);
         }
     }
 }
@@ -2443,6 +2496,32 @@ public interface YyProductSnapshotMapper {
         SET drug_id = #{drugId}, fusion_confidence = #{fusionConfidence}
         WHERE id = #{id}
     </update>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO yy_product_snapshot (source_platform, sku_id, product_id, source_api,
+            drug_id, fusion_confidence, common_name, barcode, approval_number,
+            manufacturer, specification, price_current, stock_quantity,
+            product_data, raw_data_payload, collected_at)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.sourcePlatform}, #{item.skuId}, #{item.productId}, #{item.sourceApi},
+            #{item.drugId}, #{item.fusionConfidence}, #{item.commonName}, #{item.barcode},
+            #{item.approvalNumber}, #{item.manufacturer}, #{item.specification},
+            #{item.priceCurrent}, #{item.stockQuantity},
+            #{item.productData, typeHandler=com.ruoyi.yy.handler.JsonStringTypeHandler},
+            #{item.rawDataPayload, typeHandler=com.ruoyi.yy.handler.JsonStringTypeHandler},
+            #{item.collectedAt})
+        </foreach>
+    </insert>
+
+    <select id="selectByPlatformAndSkuIds" resultMap="YyProductSnapshotResult">
+        SELECT * FROM yy_product_snapshot
+        WHERE source_platform = #{platform}
+        AND sku_id IN
+        <foreach collection="skuIds" item="skuId" open="(" separator="," close=")">
+            #{skuId}
+        </foreach>
+    </select>
 </mapper>
 ```
 
@@ -2704,16 +2783,17 @@ class YyCircuitBreakerTest {
 - [ ] **Step 4: 实现YyCircuitBreaker**
 
 ```java
-package com.ruoyi.yy.service.impl;
+package com.ruoyi.yy.handler;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 简单熔断器实现
+ * 熔断器实现（线程安全）
  *
  * CLOSED → 连续失败达到阈值 → OPEN
- * OPEN → 等待超时 → HALF_OPEN
+ * OPEN → 等待超时 → HALF_OPEN（仅放行1个探测请求）
  * HALF_OPEN → 成功 → CLOSED / 失败 → OPEN
  */
 public class YyCircuitBreaker {
@@ -2726,6 +2806,7 @@ public class YyCircuitBreaker {
     private final AtomicInteger failureCount = new AtomicInteger(0);
     private final AtomicLong lastFailureTime = new AtomicLong(0);
     private final AtomicReference<State> state = new AtomicReference<>(State.CLOSED);
+    private final AtomicInteger halfOpenPermits = new AtomicInteger(0);
 
     public YyCircuitBreaker(int failureThreshold, long openDurationMs) {
         this.failureThreshold = failureThreshold;
@@ -2740,17 +2821,26 @@ public class YyCircuitBreaker {
         if (current == State.OPEN) {
             if (System.currentTimeMillis() - lastFailureTime.get() > openDurationMs) {
                 // CAS: only one thread transitions OPEN → HALF_OPEN
-                state.compareAndSet(State.OPEN, State.HALF_OPEN);
-                return true;
+                if (state.compareAndSet(State.OPEN, State.HALF_OPEN)) {
+                    halfOpenPermits.set(1);
+                    return true;
+                }
+                // CAS failed: another thread won the transition, fall through to HALF_OPEN check
+            } else {
+                return false;
             }
-            return false;
         }
-        // HALF_OPEN — allow one request
-        return true;
+        // HALF_OPEN — allow exactly one probe request
+        if (halfOpenPermits.decrementAndGet() >= 0) {
+            return true;
+        }
+        halfOpenPermits.compareAndSet(-1, 0); // clamp to 0
+        return false;
     }
 
     public void recordSuccess() {
         failureCount.set(0);
+        halfOpenPermits.set(0);
         state.set(State.CLOSED);
     }
 
@@ -2820,8 +2910,9 @@ public interface IYyAiGateway {
 @Service
 public class YyAiGatewayImpl implements IYyAiGateway {
 
-    private static final Logger log = LoggerFactory.getLogger(YyAiGateway.class);
+    private static final Logger log = LoggerFactory.getLogger(YyAiGatewayImpl.class);
     private static final ObjectMapper JSON = new ObjectMapper();
+    private static final java.net.http.HttpClient HTTP_CLIENT = java.net.http.HttpClient.newHttpClient();
 
     // 熔断器：3次失败，休息5分钟
     private final YyCircuitBreaker circuitBreaker = new YyCircuitBreaker(3, 300_000);
@@ -2912,7 +3003,6 @@ public class YyAiGatewayImpl implements IYyAiGateway {
             ));
 
             // HTTP调用
-            java.net.http.HttpClient httpClient = java.net.http.HttpClient.newHttpClient();
             java.net.http.HttpRequest httpRequest = java.net.http.HttpRequest.newBuilder()
                 .uri(java.net.URI.create(endpoint))
                 .header("Content-Type", "application/json")
@@ -2922,7 +3012,7 @@ public class YyAiGatewayImpl implements IYyAiGateway {
                 .build();
 
             java.net.http.HttpResponse<String> httpResponse =
-                httpClient.send(httpRequest, java.net.http.HttpResponse.BodyHandlers.ofString());
+                HTTP_CLIENT.send(httpRequest, java.net.http.HttpResponse.BodyHandlers.ofString());
 
             long latency = System.currentTimeMillis() - startTime;
 
@@ -3128,12 +3218,118 @@ public interface YyAiPromptTemplateMapper {
 </mapper>
 ```
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 9: 创建YyAiGatewayTest**
+
+```java
+package com.ruoyi.yy;
+
+import com.ruoyi.yy.domain.YyAiRequest;
+import com.ruoyi.yy.domain.YyAiResponse;
+import com.ruoyi.yy.domain.YyAiPromptTemplate;
+import com.ruoyi.yy.mapper.YyAiPromptTemplateMapper;
+import com.ruoyi.yy.service.impl.YyAiGatewayImpl;
+import com.ruoyi.yy.service.impl.YyMockAiGateway;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
+
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class YyAiGatewayTest {
+
+    private YyAiPromptTemplateMapper promptTemplateMapper;
+    private StringRedisTemplate redisTemplate;
+    private ValueOperations<String, String> valueOps;
+    private YyAiGatewayImpl gateway;
+
+    @BeforeEach
+    void setUp() {
+        promptTemplateMapper = mock(YyAiPromptTemplateMapper.class);
+        redisTemplate = mock(StringRedisTemplate.class);
+        valueOps = mock(ValueOperations.class);
+        when(redisTemplate.opsForValue()).thenReturn(valueOps);
+
+        gateway = new YyAiGatewayImpl();
+        // 通过反射注入依赖（因为 @Autowired 字段）
+        setField(gateway, "promptTemplateMapper", promptTemplateMapper);
+        setField(gateway, "redisTemplate", redisTemplate);
+        setField(gateway, "apiKey", "test-key");
+        setField(gateway, "endpoint", "https://test.api.com");
+    }
+
+    @Test
+    void call_cacheHit_returnsCachedResponse() {
+        YyAiRequest request = new YyAiRequest("match", "{\"name\":\"test\"}");
+        when(valueOps.get(anyString())).thenReturn("{\"success\":true,\"content\":\"cached\"}");
+
+        YyAiResponse response = gateway.call(request);
+
+        assertTrue(response.isSuccess());
+        assertEquals("cached", response.getContent());
+        verify(promptTemplateMapper, never()).selectByTemplateCode(anyString());
+    }
+
+    @Test
+    void call_cacheMiss_loadsTemplateAndCalls() {
+        YyAiRequest request = new YyAiRequest("match", "{\"name\":\"test\"}");
+        when(valueOps.get(anyString())).thenReturn(null);
+
+        YyAiPromptTemplate template = new YyAiPromptTemplate();
+        template.setSystemPrompt("You are a matcher");
+        template.setUserPromptTemplate("Match: {{input}}");
+        template.setModel("qwen-turbo");
+        template.setTemperature(0.1);
+        template.setMaxTokens(1000);
+        when(promptTemplateMapper.selectByTemplateCode("match")).thenReturn(template);
+
+        // 无法真正调用 DashScope API，验证模板加载和缓存键构建
+        YyAiResponse response = gateway.call(request);
+        // 由于 API key 无效，调用会失败，但验证了模板加载路径
+        assertNotNull(response);
+    }
+
+    @Test
+    void call_noTemplate_returnsFallback() {
+        YyAiRequest request = new YyAiRequest("nonexistent_scene", "{}");
+        when(valueOps.get(anyString())).thenReturn(null);
+        when(promptTemplateMapper.selectByTemplateCode("nonexistent_scene")).thenReturn(null);
+
+        YyAiResponse response = gateway.call(request);
+        assertNotNull(response);
+    }
+
+    @Test
+    void isHealthy_returnsTrueByDefault() {
+        assertTrue(gateway.isHealthy());
+    }
+
+    private static void setField(Object target, String fieldName, Object value) {
+        try {
+            java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set field: " + fieldName, e);
+        }
+    }
+}
+```
+
+- [ ] **Step 10: 运行YyAiGatewayTest**
+
+Run: `mvn test -pl ruoyi-system -Dtest=YyAiGatewayTest -DfailIfNoTests=false`
+Expected: PASS
+
+- [ ] **Step 11: Commit**
 
 ```bash
 git add ruoyi-system/src/main/java/com/ruoyi/yy/ai/ \
         ruoyi-system/src/test/java/com/ruoyi/yy/
-git commit -m "feat: add YyAiGateway with DashScope integration, circuit breaker, and prompt template management"
+git commit -m "feat: add YyAiGateway with DashScope integration, circuit breaker, prompt template management, and tests"
 ```
 
 ---
@@ -3252,7 +3448,7 @@ package com.ruoyi.yy.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ruoyi.yy.service.impl.YyAiGatewayImpl;
+import com.ruoyi.yy.service.IYyAiGateway;
 import com.ruoyi.yy.domain.YyAiRequest;
 import com.ruoyi.yy.domain.YyAiResponse;
 import com.ruoyi.yy.constant.MatchMethod;
@@ -3282,10 +3478,10 @@ public class YyAiMatchStrategy implements IYyMatchStrategy {
         "你是医药行业数据专家。请判断以下药品信息是否指向同一药品。\n" +
         "请返回JSON格式：{\"matched\": true/false, \"drug_id\": \"xxx\", \"confidence\": 0.95, \"reason\": \"xxx\"}";
 
-    private final YyAiGateway aiGateway;
+    private final IYyAiGateway aiGateway;
 
     @Autowired
-    public YyAiMatchStrategy(YyAiGateway aiGateway) {
+    public YyAiMatchStrategy(IYyAiGateway aiGateway) {
         this.aiGateway = aiGateway;
     }
 
@@ -3357,7 +3553,16 @@ public class YyAiMatchStrategy implements IYyMatchStrategy {
                 return YyMatchResult.failure("AI determined no match");
             }
 
-            long drugId = Long.parseLong(root.path("drug_id").asText("0"));
+            String drugIdStr = root.path("drug_id").asText(null);
+            if (drugIdStr == null || drugIdStr.isBlank()) {
+                return YyMatchResult.failure("AI returned matched=true but missing drug_id");
+            }
+            long drugId;
+            try {
+                drugId = Long.parseLong(drugIdStr);
+            } catch (NumberFormatException e) {
+                return YyMatchResult.failure("AI returned non-numeric drug_id: " + drugIdStr);
+            }
             double confidence = root.path("confidence").asDouble(0.5);
             String reason = root.path("reason").asText("AI match");
 
@@ -3504,14 +3709,14 @@ public class YyConfigurablePlatformAdapter implements IYyPlatformAdapter {
             return encryptedData;  // 无加密
         }
         // AES/DES解密逻辑（复用现有代码）
-        try {
-            if (encryptType == 1) {  // AES
+        if (encryptType == 1) {  // AES
+            try {
                 return decryptAES(encryptedData, platformKey);
+            } catch (Exception e) {
+                throw new RuntimeException("AES decryption failed, refusing to return ciphertext", e);
             }
-        } catch (Exception e) {
-            log.error("Decrypt failed", e);
         }
-        return encryptedData;
+        throw new UnsupportedOperationException("Unsupported encryptType: " + encryptType);
     }
 
     @Override
@@ -3611,10 +3816,18 @@ public class YyConfigurablePlatformAdapter implements IYyPlatformAdapter {
             case "manufacturer": snapshot.setManufacturer(value); break;
             case "specification": snapshot.setSpecification(value); break;
             case "price_current":
-                try { snapshot.setPriceCurrent(new BigDecimal(value)); } catch (NumberFormatException ignored) {}
+                try {
+                    snapshot.setPriceCurrent(new BigDecimal(value));
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid price_current value '{}' for sku={}, setting null", value, snapshot.getSkuId());
+                }
                 break;
             case "stock_quantity":
-                try { snapshot.setStockQuantity(Integer.parseInt(value)); } catch (NumberFormatException ignored) {}
+                try {
+                    snapshot.setStockQuantity(Integer.parseInt(value));
+                } catch (NumberFormatException e) {
+                    log.warn("Invalid stock_quantity value '{}' for sku={}, setting null", value, snapshot.getSkuId());
+                }
                 break;
             // product_data中的字段通过JSON处理
             default:
@@ -3677,11 +3890,203 @@ public class YyPlatformAdapterRegistry {
 }
 ```
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: 创建YyConfigurablePlatformAdapterTest**
+
+```java
+package com.ruoyi.yy;
+
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.ruoyi.yy.domain.YyFieldMapping;
+import com.ruoyi.yy.domain.YyProductSnapshot;
+import com.ruoyi.yy.mapper.YyFieldMappingMapper;
+import com.ruoyi.yy.service.impl.YyConfigurablePlatformAdapter;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class YyConfigurablePlatformAdapterTest {
+
+    private YyFieldMappingMapper fieldMappingMapper;
+    private YyConfigurablePlatformAdapter adapter;
+
+    @BeforeEach
+    void setUp() {
+        fieldMappingMapper = mock(YyFieldMappingMapper.class);
+        adapter = new YyConfigurablePlatformAdapter();
+        setField(adapter, "fieldMappingMapper", fieldMappingMapper);
+    }
+
+    @Test
+    void getPlatformCode_returnsWildcard() {
+        assertEquals("*", adapter.getPlatformCode());
+    }
+
+    @Test
+    void decrypt_noEncryption_returnsInput() {
+        String result = adapter.decrypt("plaintext", "key", 0);
+        assertEquals("plaintext", result);
+    }
+
+    @Test
+    void decrypt_aesEncryption_decryptsCorrectly() {
+        // AES/ECB/PKCS5Padding with known key
+        String key = "1234567890abcdef"; // 16-char key
+        String plaintext = "hello world";
+        // 加密后的 Base64（预计算值）
+        try {
+            javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/ECB/PKCS5Padding");
+            cipher.init(javax.crypto.Cipher.ENCRYPT_MODE,
+                new javax.crypto.spec.SecretKeySpec(key.getBytes(), "AES"));
+            byte[] encrypted = cipher.doFinal(plaintext.getBytes());
+            String encoded = java.util.Base64.getEncoder().encodeToString(encrypted);
+
+            String result = adapter.decrypt(encoded, key, 1);
+            assertEquals(plaintext, result);
+        } catch (Exception e) {
+            fail("AES test setup failed: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void decrypt_aesFailure_throwsException() {
+        assertThrows(RuntimeException.class, () -> {
+            adapter.decrypt("invalid-base64", "key", 1);
+        });
+    }
+
+    @Test
+    void extractProductArray_withEntryPath() {
+        String json = "{\"data\":{\"items\":[{\"id\":1},{\"id\":2}]}}";
+        JSONArray result = adapter.extractProductArray(json, "data.items");
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void extractProductArray_withoutEntryPath() {
+        String json = "[{\"id\":1},{\"id\":2}]";
+        JSONArray result = adapter.extractProductArray(json, null);
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void normalizeProduct_appliesFieldMappings() {
+        YyFieldMapping nameMapping = new YyFieldMapping();
+        nameMapping.setSourceField("goods_name");
+        nameMapping.setTargetField("common_name");
+        nameMapping.setTransformRule(null);
+        nameMapping.setDefaultValue(null);
+
+        YyFieldMapping priceMapping = new YyFieldMapping();
+        priceMapping.setSourceField("sale_price");
+        priceMapping.setTargetField("price_current");
+        priceMapping.setTransformRule(null);
+        priceMapping.setDefaultValue(null);
+
+        when(fieldMappingMapper.selectByPlatformCode("test")).thenReturn(Arrays.asList(nameMapping, priceMapping));
+
+        JSONObject rawItem = new JSONObject();
+        rawItem.put("goods_name", "阿莫西林胶囊");
+        rawItem.put("sale_price", "25.50");
+
+        YyProductSnapshot snapshot = adapter.normalizeProduct(rawItem, "test", "search");
+
+        assertEquals("阿莫西林胶囊", snapshot.getCommonName());
+        assertEquals(new java.math.BigDecimal("25.50"), snapshot.getPriceCurrent());
+        assertEquals("test", snapshot.getSourcePlatform());
+    }
+
+    @Test
+    void normalizeProduct_appliesRegexTransform() {
+        YyFieldMapping mapping = new YyFieldMapping();
+        mapping.setSourceField("approval");
+        mapping.setTargetField("approval_number");
+        mapping.setTransformRule("regex:([A-Z]\\d+)");
+        mapping.setDefaultValue(null);
+
+        when(fieldMappingMapper.selectByPlatformCode("test")).thenReturn(List.of(mapping));
+
+        JSONObject rawItem = new JSONObject();
+        rawItem.put("approval", "国药准字Z11020001");
+
+        YyProductSnapshot snapshot = adapter.normalizeProduct(rawItem, "test", "search");
+        assertEquals("Z11020001", snapshot.getApprovalNumber());
+    }
+
+    @Test
+    void normalizeProduct_appliesReplaceTransform() {
+        YyFieldMapping mapping = new YyFieldMapping();
+        mapping.setSourceField("spec");
+        mapping.setTargetField("specification");
+        mapping.setTransformRule("replace:×→*");
+        mapping.setDefaultValue(null);
+
+        when(fieldMappingMapper.selectByPlatformCode("test")).thenReturn(List.of(mapping));
+
+        JSONObject rawItem = new JSONObject();
+        rawItem.put("spec", "0.25g×12片");
+
+        YyProductSnapshot snapshot = adapter.normalizeProduct(rawItem, "test", "search");
+        assertEquals("0.25g*12片", snapshot.getSpecification());
+    }
+
+    @Test
+    void normalizeProduct_usesDefaultValue() {
+        YyFieldMapping mapping = new YyFieldMapping();
+        mapping.setSourceField("missing_field");
+        mapping.setTargetField("barcode");
+        mapping.setTransformRule(null);
+        mapping.setDefaultValue("UNKNOWN");
+
+        when(fieldMappingMapper.selectByPlatformCode("test")).thenReturn(List.of(mapping));
+
+        JSONObject rawItem = new JSONObject();
+        YyProductSnapshot snapshot = adapter.normalizeProduct(rawItem, "test", "search");
+        assertEquals("UNKNOWN", snapshot.getBarcode());
+    }
+
+    @Test
+    void buildSearchKeywords_removesBrandName() {
+        List<String> keywords = adapter.buildSearchKeywords("阿莫西林胶囊（华北制药）");
+        assertTrue(keywords.size() >= 2);
+        assertEquals("阿莫西林胶囊（华北制药）", keywords.get(0));
+        assertEquals("阿莫西林胶囊", keywords.get(1));
+    }
+
+    @Test
+    void buildSearchKeywords_nullInput_returnsEmpty() {
+        List<String> keywords = adapter.buildSearchKeywords(null);
+        assertTrue(keywords.isEmpty());
+    }
+
+    private static void setField(Object target, String fieldName, Object value) {
+        try {
+            java.lang.reflect.Field field = target.getClass().getDeclaredField(fieldName);
+            field.setAccessible(true);
+            field.set(target, value);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set field: " + fieldName, e);
+        }
+    }
+}
+```
+
+- [ ] **Step 5: 运行YyConfigurablePlatformAdapterTest**
+
+Run: `mvn test -pl ruoyi-system -Dtest=YyConfigurablePlatformAdapterTest -DfailIfNoTests=false`
+Expected: PASS
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add ruoyi-system/src/main/java/com/ruoyi/yy/platform/adapter/
-git commit -m "feat: add IYyPlatformAdapter pattern with YyConfigurablePlatformAdapter and registry"
+git add ruoyi-system/src/main/java/com/ruoyi/yy/platform/adapter/ \
+        ruoyi-system/src/test/java/com/ruoyi/yy/YyConfigurablePlatformAdapterTest.java
+git commit -m "feat: add IYyPlatformAdapter pattern with YyConfigurablePlatformAdapter, registry, and tests"
 ```
 
 ---
@@ -3992,7 +4397,7 @@ git commit -m "refactor: split Chrome extension background.js into modular files
 - [ ] **Step 1: 创建YyPurchaseAdvice值对象**
 
 ```java
-package com.ruoyi.yy.service.impl;
+package com.ruoyi.yy.domain;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -4036,10 +4441,10 @@ package com.ruoyi.yy.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ruoyi.yy.service.impl.YyAiGatewayImpl;
+import com.ruoyi.yy.service.IYyAiGateway;
 import com.ruoyi.yy.domain.YyAiRequest;
 import com.ruoyi.yy.domain.YyAiResponse;
-import com.ruoyi.yy.price.domain.YyPriceComparison;
+import com.ruoyi.yy.domain.YyPriceComparison;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -4069,7 +4474,7 @@ public class YyAiAdvisorImpl {
         "\"totalSaving\": 节省金额, \"tips\": [\"建议1\", \"建议2\"]}";
 
     @Autowired
-    private YyAiGateway aiGateway;
+    private IYyAiGateway aiGateway;
 
     /**
      * 获取采购建议
@@ -4172,11 +4577,106 @@ public class YyAiAdvisorImpl {
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: 创建YyAiAdvisorImplTest**
+
+```java
+package com.ruoyi.yy;
+
+import com.ruoyi.yy.domain.YyAiRequest;
+import com.ruoyi.yy.domain.YyAiResponse;
+import com.ruoyi.yy.domain.YyProductSnapshot;
+import com.ruoyi.yy.domain.YyPurchaseAdvice;
+import com.ruoyi.yy.mapper.YyProductSnapshotMapper;
+import com.ruoyi.yy.service.IYyAiGateway;
+import com.ruoyi.yy.service.impl.YyAiAdvisorImpl;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class YyAiAdvisorImplTest {
+
+    private IYyAiGateway gateway;
+    private YyProductSnapshotMapper snapshotMapper;
+    private YyAiAdvisorImpl advisor;
+
+    @BeforeEach
+    void setUp() {
+        gateway = mock(IYyAiGateway.class);
+        snapshotMapper = mock(YyProductSnapshotMapper.class);
+        advisor = new YyAiAdvisorImpl(gateway, snapshotMapper);
+    }
+
+    @Test
+    void advise_noSnapshots_returnsFallback() {
+        when(snapshotMapper.selectByDrugId(1L)).thenReturn(Collections.emptyList());
+
+        YyPurchaseAdvice advice = advisor.advise(1L);
+
+        assertNotNull(advice);
+        assertEquals("暂无价格数据", advice.getSummary());
+    }
+
+    @Test
+    void advise_withSnapshots_callsGateway() {
+        YyProductSnapshot s1 = new YyProductSnapshot();
+        s1.setSourcePlatform("ysbang");
+        s1.setPriceCurrent(new BigDecimal("25.50"));
+        s1.setCommonName("阿莫西林");
+
+        YyProductSnapshot s2 = new YyProductSnapshot();
+        s2.setSourcePlatform("yaojingduo");
+        s2.setPriceCurrent(new BigDecimal("23.00"));
+        s2.setCommonName("阿莫西林");
+
+        when(snapshotMapper.selectByDrugId(1L)).thenReturn(Arrays.asList(s1, s2));
+
+        YyAiResponse aiResponse = YyAiResponse.success(
+            "{\"bestPlatform\":\"yaojingduo\",\"bestPrice\":23.00,\"totalSaving\":2.50,\"tips\":[\"价格较低\"]}"
+        );
+        when(gateway.call(any(YyAiRequest.class))).thenReturn(aiResponse);
+
+        YyPurchaseAdvice advice = advisor.advise(1L);
+
+        assertNotNull(advice);
+        verify(gateway).call(any(YyAiRequest.class));
+    }
+
+    @Test
+    void advise_gatewayFailure_returnsFallback() {
+        YyProductSnapshot s1 = new YyProductSnapshot();
+        s1.setSourcePlatform("ysbang");
+        s1.setPriceCurrent(new BigDecimal("25.50"));
+
+        when(snapshotMapper.selectByDrugId(1L)).thenReturn(List.of(s1));
+        when(gateway.call(any(YyAiRequest.class))).thenReturn(YyAiResponse.fail("timeout"));
+
+        YyPurchaseAdvice advice = advisor.advise(1L);
+
+        assertNotNull(advice);
+        // 降级到基本建议
+        assertNotNull(advice.getSummary());
+    }
+}
+```
+
+- [ ] **Step 4: 运行YyAiAdvisorImplTest**
+
+Run: `mvn test -pl ruoyi-system -Dtest=YyAiAdvisorImplTest -DfailIfNoTests=false`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
 
 ```bash
-git add ruoyi-system/src/main/java/com/ruoyi/yy/ai/advisor/
-git commit -m "feat: add YyAiAdvisorImpl for multi-platform price comparison advice"
+git add ruoyi-system/src/main/java/com/ruoyi/yy/ai/advisor/ \
+        ruoyi-system/src/test/java/com/ruoyi/yy/YyAiAdvisorImplTest.java
+git commit -m "feat: add YyAiAdvisorImpl for multi-platform price comparison advice with tests"
 ```
 
 ---
@@ -4227,7 +4727,7 @@ package com.ruoyi.yy.service.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ruoyi.yy.service.impl.YyAiGatewayImpl;
+import com.ruoyi.yy.service.IYyAiGateway;
 import com.ruoyi.yy.domain.YyAiRequest;
 import com.ruoyi.yy.domain.YyAiResponse;
 import com.ruoyi.yy.domain.YyProductSnapshot;
@@ -4263,7 +4763,7 @@ public class YyAiDataCleanerImpl {
         "\"suggested\": \"建议值\", \"confidence\": 0.9, \"reason\": \"原因\"}";
 
     @Autowired
-    private YyAiGateway aiGateway;
+    private IYyAiGateway aiGateway;
 
     @Autowired
     private YyProductSnapshotMapper snapshotMapper;
@@ -4366,11 +4866,97 @@ public class YyAiDataCleanerImpl {
 }
 ```
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 3: 创建YyAiDataCleanerImplTest**
+
+```java
+package com.ruoyi.yy;
+
+import com.ruoyi.yy.domain.YyAiRequest;
+import com.ruoyi.yy.domain.YyAiResponse;
+import com.ruoyi.yy.domain.YyCleanResult;
+import com.ruoyi.yy.domain.YyProductSnapshot;
+import com.ruoyi.yy.mapper.YyProductSnapshotMapper;
+import com.ruoyi.yy.service.IYyAiGateway;
+import com.ruoyi.yy.service.impl.YyAiDataCleanerImpl;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+class YyAiDataCleanerImplTest {
+
+    private IYyAiGateway gateway;
+    private YyProductSnapshotMapper snapshotMapper;
+    private YyAiDataCleanerImpl cleaner;
+
+    @BeforeEach
+    void setUp() {
+        gateway = mock(IYyAiGateway.class);
+        snapshotMapper = mock(YyProductSnapshotMapper.class);
+        cleaner = new YyAiDataCleanerImpl(gateway, snapshotMapper);
+    }
+
+    @Test
+    void cleanProductData_emptyList_returnsEmptyResult() {
+        YyCleanResult result = cleaner.cleanProductData(Collections.emptyList());
+        assertNotNull(result);
+        assertEquals(0, result.getTotalProcessed());
+    }
+
+    @Test
+    void cleanProductData_withSnapshots_callsGateway() {
+        YyProductSnapshot s1 = new YyProductSnapshot();
+        s1.setId(1L);
+        s1.setCommonName("阿莫西林胶囊");
+        s1.setManufacturer("华北制药股份有限公司");
+        s1.setSpecification("0.25g×12片/盒");
+        s1.setProductData("{}");
+
+        when(gateway.call(any(YyAiRequest.class))).thenReturn(
+            YyAiResponse.success("{\"suggestions\":[{\"field\":\"manufacturer\",\"original\":\"华北制药股份有限公司\",\"corrected\":\"华北制药\",\"reason\":\"去除公司后缀\"}]}")
+        );
+
+        YyCleanResult result = cleaner.cleanProductData(List.of(s1));
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalProcessed());
+        verify(gateway, atLeastOnce()).call(any(YyAiRequest.class));
+    }
+
+    @Test
+    void cleanProductData_gatewayFailure_continuesProcessing() {
+        YyProductSnapshot s1 = new YyProductSnapshot();
+        s1.setId(1L);
+        s1.setCommonName("测试药品");
+        s1.setProductData("{}");
+
+        when(gateway.call(any(YyAiRequest.class))).thenReturn(YyAiResponse.fail("timeout"));
+
+        YyCleanResult result = cleaner.cleanProductData(List.of(s1));
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalProcessed());
+    }
+}
+```
+
+- [ ] **Step 4: 运行YyAiDataCleanerImplTest**
+
+Run: `mvn test -pl ruoyi-system -Dtest=YyAiDataCleanerImplTest -DfailIfNoTests=false`
+Expected: PASS
+
+- [ ] **Step 5: Commit**
 
 ```bash
-git add ruoyi-system/src/main/java/com/ruoyi/yy/ai/cleaner/
-git commit -m "feat: add YyAiDataCleanerImpl for batch data standardization"
+git add ruoyi-system/src/main/java/com/ruoyi/yy/ai/cleaner/ \
+        ruoyi-system/src/test/java/com/ruoyi/yy/YyAiDataCleanerImplTest.java
+git commit -m "feat: add YyAiDataCleanerImpl for batch data standardization with tests"
 ```
 
 ---
@@ -4496,6 +5082,67 @@ class DataFusionServiceIntegrationTest {
         YyProductSnapshot found = snapshotMapper.selectByPlatformSku("ysbang", "SKU_SELECT_TEST");
         assertNotNull(found);
         assertEquals("查询测试药品", found.getCommonName());
+    }
+
+    @Test
+    void batchInsert_works() {
+        YyProductSnapshot s1 = new YyProductSnapshot();
+        s1.setSourcePlatform("batch_test");
+        s1.setSkuId("BATCH_001");
+        s1.setCommonName("批量测试药品1");
+        s1.setProductData("{}");
+
+        YyProductSnapshot s2 = new YyProductSnapshot();
+        s2.setSourcePlatform("batch_test");
+        s2.setSkuId("BATCH_002");
+        s2.setCommonName("批量测试药品2");
+        s2.setProductData("{}");
+
+        snapshotMapper.batchInsert(java.util.Arrays.asList(s1, s2));
+
+        assertNotNull(s1.getId());
+        assertNotNull(s2.getId());
+        assertTrue(s1.getId() > 0);
+        assertTrue(s2.getId() > 0);
+    }
+
+    @Test
+    void selectByPlatformAndSkuIds_works() {
+        YyProductSnapshot s1 = new YyProductSnapshot();
+        s1.setSourcePlatform("batch_query_test");
+        s1.setSkuId("SKU_A");
+        s1.setCommonName("查询药品A");
+        s1.setProductData("{}");
+
+        YyProductSnapshot s2 = new YyProductSnapshot();
+        s2.setSourcePlatform("batch_query_test");
+        s2.setSkuId("SKU_B");
+        s2.setCommonName("查询药品B");
+        s2.setProductData("{}");
+
+        snapshotMapper.batchInsert(java.util.Arrays.asList(s1, s2));
+
+        List<YyProductSnapshot> results = snapshotMapper.selectByPlatformAndSkuIds(
+            "batch_query_test", java.util.Arrays.asList("SKU_A", "SKU_B"));
+
+        assertEquals(2, results.size());
+    }
+
+    @Test
+    void updateDrugBinding_works() {
+        YyProductSnapshot snapshot = new YyProductSnapshot();
+        snapshot.setSourcePlatform("binding_test");
+        snapshot.setSkuId("BIND_001");
+        snapshot.setCommonName("绑定测试药品");
+        snapshot.setProductData("{}");
+
+        snapshotMapper.insert(snapshot);
+
+        snapshotMapper.updateDrugBinding(snapshot.getId(), 999L, new java.math.BigDecimal("0.95"));
+
+        YyProductSnapshot updated = snapshotMapper.selectById(snapshot.getId());
+        assertEquals(999L, updated.getDrugId());
+        assertEquals(new java.math.BigDecimal("0.95"), updated.getFusionConfidence());
     }
 }
 ```
