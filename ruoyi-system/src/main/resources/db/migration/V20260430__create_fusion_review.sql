@@ -8,7 +8,10 @@ CREATE TABLE IF NOT EXISTS yy_fusion_review (
     reviewer_id BIGINT DEFAULT NULL COMMENT '审核人',
     review_note VARCHAR(500) DEFAULT NULL COMMENT '审核备注',
     reviewed_at DATETIME DEFAULT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    create_by VARCHAR(64) DEFAULT '' COMMENT '创建者',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_by VARCHAR(64) DEFAULT '' COMMENT '更新者',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='融合审核队列';

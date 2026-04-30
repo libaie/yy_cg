@@ -17,6 +17,8 @@ CREATE TABLE IF NOT EXISTS yy_product_snapshot (
     raw_data_payload JSON DEFAULT NULL COMMENT '解密后的原始响应',
     collected_at DATETIME DEFAULT NULL COMMENT '采集时间',
     synced_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '同步时间',
+    create_by VARCHAR(64) DEFAULT '' COMMENT '创建者',
+    update_by VARCHAR(64) DEFAULT '' COMMENT '更新者',
     PRIMARY KEY (id),
     UNIQUE KEY uk_platform_sku (source_platform, sku_id),
     KEY idx_drug_id (drug_id),
