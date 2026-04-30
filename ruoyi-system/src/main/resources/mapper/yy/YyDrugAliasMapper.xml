@@ -32,7 +32,7 @@
             create_by, create_time, update_by, update_time)
         VALUES (#{drugId}, #{platformCode}, #{platformProductName},
             #{platformManufacturer}, #{platformSpecification}, #{platformSkuId},
-            #{confidence}, #{matchMethod}, NOW(),
+            #{confidence}, #{matchMethod}, #{lastVerifiedAt},
             #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
     </insert>
 

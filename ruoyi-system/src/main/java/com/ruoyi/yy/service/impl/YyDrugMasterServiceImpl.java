@@ -39,11 +39,17 @@ public class YyDrugMasterServiceImpl implements IYyDrugMasterService {
 
     @Override
     public List<YyDrugMaster> selectCandidates(String commonName, String specification) {
+        if ((commonName == null || commonName.isEmpty()) && (specification == null || specification.isEmpty())) {
+            return Collections.emptyList();
+        }
         return drugMasterMapper.selectYyDrugMasterCandidates(commonName, specification);
     }
 
     @Override
     public List<YyDrugMaster> selectCandidatesFallback(String commonName, String specification) {
+        if ((commonName == null || commonName.isEmpty()) && (specification == null || specification.isEmpty())) {
+            return Collections.emptyList();
+        }
         return drugMasterMapper.selectYyDrugMasterCandidatesFallback(commonName, specification);
     }
 

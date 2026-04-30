@@ -1,6 +1,7 @@
 package com.ruoyi.yy.domain;
 
 import com.ruoyi.common.core.domain.BaseEntity;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.math.BigDecimal;
 import java.util.Date;
 
@@ -19,6 +20,7 @@ public class YyDrugAlias extends BaseEntity {
     private String platformSkuId;
     private BigDecimal confidence;
     private String matchMethod;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date lastVerifiedAt;
 
     // Getters and setters
