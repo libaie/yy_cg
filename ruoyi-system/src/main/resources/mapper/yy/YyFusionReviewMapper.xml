@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyFusionReviewMapper">
+
+    <resultMap type="YyFusionReview" id="YyFusionReviewResult">
+        <result property="id" column="id"/>
+        <result property="snapshotId" column="snapshot_id"/>
+        <result property="candidateDrugIds" column="candidate_drug_ids"/>
+        <result property="matchScores" column="match_scores"/>
+        <result property="aiSuggestion" column="ai_suggestion"/>
+        <result property="status" column="status"/>
+        <result property="reviewerId" column="reviewer_id"/>
+        <result property="reviewNote" column="review_note"/>
+        <result property="reviewedAt" column="reviewed_at"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectYyFusionReviewById" resultMap="YyFusionReviewResult">
+        SELECT * FROM yy_fusion_review WHERE id = #{id}
+    </select>
+
+    <select id="selectYyFusionReviewByStatus" resultMap="YyFusionReviewResult">
+        SELECT * FROM yy_fusion_review WHERE status = #{status} ORDER BY create_time ASC
+    </select>
+
+    <insert id="insertYyFusionReview" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO yy_fusion_review (snapshot_id, candidate_drug_ids, match_scores,
+            ai_suggestion, status, create_by, create_time, update_by, update_time)
+        VALUES (#{snapshotId}, #{candidateDrugIds}, #{matchScores},
+            #{aiSuggestion}, #{status}, #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
+    </insert>
+
+    <update id="updateYyFusionReviewStatus">
+        UPDATE yy_fusion_review
+        SET status = #{status}, reviewer_id = #{reviewerId},
+            review_note = #{reviewNote}, reviewed_at = NOW()
+        WHERE id = #{id}
+    </update>
+</mapper>
