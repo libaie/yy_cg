@@ -33,7 +33,7 @@ public class YyFuzzyMatchStrategy implements IYyMatchStrategy {
 
     // 厂家名后缀
     private static final Pattern MANUFACTURER_SUFFIXES = Pattern.compile(
-        "(股份有限公司|有限公司|有限责任公司|集团|药业|制药|医药|股份|Inc\\.?|Ltd\\.?|Co\\.?|Corp\\.?)",
+        "(股份有限公司|有限公司|有限责任公司|集团|药业|制药|医药|股份|Inc\\.?|Ltd\\.?|Co\\.?|Corp\\.?)$",
         Pattern.CASE_INSENSITIVE
     );
 
@@ -129,29 +129,40 @@ public class YyFuzzyMatchStrategy implements IYyMatchStrategy {
     }
 
     /**
-     * 计算三维加权相似度
+     * 计算三维加权相似度，缺失维度跳过并重新分配权重
      */
     double calculateScore(String srcName, String srcSpec, String srcMfr,
                           String tgtName, String tgtSpec, String tgtMfr) {
         double nameSim = levenshteinSimilarity(srcName, tgtName);
-        double specSim = levenshteinSimilarity(srcSpec, tgtSpec);
-        double mfrSim = levenshteinSimilarity(srcMfr, tgtMfr);
+        double totalWeight = WEIGHT_COMMON_NAME;
+        double weightedScore = nameSim * WEIGHT_COMMON_NAME;
 
-        return nameSim * WEIGHT_COMMON_NAME
-             + specSim * WEIGHT_SPECIFICATION
-             + mfrSim * WEIGHT_MANUFACTURER;
+        if (!srcSpec.isEmpty() && !tgtSpec.isEmpty()) {
+            weightedScore += levenshteinSimilarity(srcSpec, tgtSpec) * WEIGHT_SPECIFICATION;
+            totalWeight += WEIGHT_SPECIFICATION;
+        }
+        if (!srcMfr.isEmpty() && !tgtMfr.isEmpty()) {
+            weightedScore += levenshteinSimilarity(srcMfr, tgtMfr) * WEIGHT_MANUFACTURER;
+            totalWeight += WEIGHT_MANUFACTURER;
+        }
+
+        return weightedScore / totalWeight;
     }
 
     /**
-     * 归一化厂家名：去除公司后缀
+     * 归一化厂家名：迭代去除末尾公司后缀
      */
     public String normalizeManufacturer(String manufacturer) {
         if (manufacturer == null || manufacturer.trim().isEmpty()) {
             return "";
         }
         String result = manufacturer.trim();
-        result = MANUFACTURER_SUFFIXES.matcher(result).replaceAll("");
-        result = result.replaceAll("[\\s()（）]+", "");
+        String prev;
+        do {
+            prev = result;
+            result = MANUFACTURER_SUFFIXES.matcher(result).replaceAll("");
+            result = result.replaceAll("[\\s()（）]+", "");
+        } while (!result.equals(prev));
         return result;
     }
 
