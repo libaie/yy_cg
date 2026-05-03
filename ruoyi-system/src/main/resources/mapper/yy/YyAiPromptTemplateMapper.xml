@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyAiPromptTemplateMapper">
+
+    <resultMap type="YyAiPromptTemplate" id="YyAiPromptTemplateResult">
+        <result property="id" column="id"/>
+        <result property="templateCode" column="template_code"/>
+        <result property="templateName" column="template_name"/>
+        <result property="scene" column="scene"/>
+        <result property="systemPrompt" column="system_prompt"/>
+        <result property="userPromptTemplate" column="user_prompt_template"/>
+        <result property="model" column="model"/>
+        <result property="temperature" column="temperature"/>
+        <result property="maxTokens" column="max_tokens"/>
+        <result property="status" column="status"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectYyAiPromptTemplateByCode" resultMap="YyAiPromptTemplateResult">
+        SELECT * FROM yy_ai_prompt_template WHERE template_code = #{templateCode} AND status = 1
+    </select>
+
+    <insert id="insertYyAiPromptTemplate" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO yy_ai_prompt_template (template_code, template_name, scene,
+            system_prompt, user_prompt_template, model, temperature, max_tokens, status,
+            create_by, create_time, update_by, update_time)
+        VALUES (#{templateCode}, #{templateName}, #{scene},
+            #{systemPrompt}, #{userPromptTemplate}, #{model}, #{temperature}, #{maxTokens}, #{status},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
+    </insert>
+
+    <update id="updateYyAiPromptTemplate">
+        UPDATE yy_ai_prompt_template
+        SET template_name = #{templateName}, system_prompt = #{systemPrompt},
+            user_prompt_template = #{userPromptTemplate}, model = #{model},
+            temperature = #{temperature}, max_tokens = #{maxTokens}, status = #{status},
+            update_by = #{updateBy}, update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+</mapper>
