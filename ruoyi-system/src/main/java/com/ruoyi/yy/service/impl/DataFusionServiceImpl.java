@@ -255,13 +255,15 @@ public class DataFusionServiceImpl implements IDataFusionService {
             .map(YyProductSnapshot::getSkuId)
             .filter(Objects::nonNull)
             .collect(java.util.stream.Collectors.toList());
-        Set<String> existingSkus = new HashSet<>();
+        final Set<String> existingSkus;
         if (!skuIds.isEmpty()) {
             List<YyProductSnapshot> existing = productSnapshotMapper
                 .selectYyProductSnapshotByPlatformAndSkuIds(platformCode, skuIds);
             existingSkus = existing.stream()
                 .map(YyProductSnapshot::getSkuId)
                 .collect(java.util.stream.Collectors.toSet());
+        } else {
+            existingSkus = new HashSet<>();
         }
 
         // 只插入新快照
