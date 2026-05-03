@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -49,6 +50,7 @@ public class YyFusionEngineImpl {
     /**
      * 对一个商品快照执行融合匹配
      */
+    @Transactional
     public YyFusionResult fuse(YyProductSnapshot snapshot) {
         String platformCode = snapshot.getSourcePlatform();
         String skuId = snapshot.getSkuId();
@@ -67,6 +69,7 @@ public class YyFusionEngineImpl {
             }
             log.warn("Dangling alias found for sku={}, deleting", skuId);
             aliasMapper.deleteYyDrugAliasById(cached.getId());
+            cached = null;  // Mark as needing fresh insert
         }
 
         // Step 2: 获取候选集（供策略使用）
@@ -87,7 +90,7 @@ public class YyFusionEngineImpl {
         if (bestResult != null && bestResult.isMatched()) {
             boolean needsReview = FusionConfidence.needsReview(bestResult.getConfidence());
 
-            saveAlias(snapshot, bestResult);
+            saveAlias(snapshot, bestResult, cached);
 
             log.info("Fusion matched: sku={} -> drug_id={} via {} conf={}",
                 skuId, bestResult.getDrugId(), bestResult.getMatchMethod(), bestResult.getConfidence());
@@ -117,19 +120,18 @@ public class YyFusionEngineImpl {
         return new ArrayList<>();
     }
 
-    private void saveAlias(YyProductSnapshot snapshot, YyMatchResult result) {
-        YyDrugAlias existing = aliasMapper.selectYyDrugAliasByPlatformSku(
-            snapshot.getSourcePlatform(), snapshot.getSkuId());
-
-        if (existing != null) {
-            existing.setDrugId(result.getDrugId());
-            existing.setConfidence(result.getConfidence());
-            existing.setMatchMethod(result.getMatchMethod().getCode());
-            existing.setLastVerifiedAt(new Date());
-            aliasMapper.updateYyDrugAlias(existing);
+    private void saveAlias(YyProductSnapshot snapshot, YyMatchResult result, YyDrugAlias cached) {
+        if (cached != null) {
+            // Update existing (dangling case - drug was re-matched)
+            cached.setDrugId(result.getDrugId());
+            cached.setConfidence(result.getConfidence());
+            cached.setMatchMethod(result.getMatchMethod().getCode());
+            cached.setLastVerifiedAt(new Date());
+            aliasMapper.updateYyDrugAlias(cached);
             log.info("Alias updated: sku={} -> drug_id={} (was {})",
-                snapshot.getSkuId(), result.getDrugId(), existing.getDrugId());
+                snapshot.getSkuId(), result.getDrugId(), cached.getDrugId());
         } else {
+            // Insert new
             YyDrugAlias alias = new YyDrugAlias();
             alias.setDrugId(result.getDrugId());
             alias.setPlatformCode(snapshot.getSourcePlatform());
