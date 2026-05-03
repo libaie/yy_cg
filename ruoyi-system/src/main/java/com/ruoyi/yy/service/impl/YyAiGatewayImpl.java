@@ -22,7 +22,9 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * AI统一网关 -- 封装通义千问API调用
@@ -100,6 +102,8 @@ public class YyAiGatewayImpl implements IYyAiGateway {
             return new StreamResult(Collections.emptyIterator(), null);
         }
 
+        AtomicBoolean cbRecorded = new AtomicBoolean(false);
+
         try {
             String systemMsg = request.getSystemPrompt() != null ? request.getSystemPrompt() : "";
             String userMsg = request.getUserPrompt() != null ? request.getUserPrompt() : "";
@@ -132,81 +136,42 @@ public class YyAiGatewayImpl implements IYyAiGateway {
                 HTTP_CLIENT.send(httpReq, HttpResponse.BodyHandlers.ofLines());
 
             if (httpResponse.statusCode() != 200) {
-                circuitBreaker.recordFailure();
+                if (cbRecorded.compareAndSet(false, true)) circuitBreaker.recordFailure();
                 httpResponse.body().close();
                 return new StreamResult(Collections.emptyIterator(), null);
             }
 
             java.util.stream.Stream<String> responseBody = httpResponse.body();
             Iterator<String> lineIterator = responseBody.iterator();
-            Iterator<String> tokenIterator = new Iterator<String>() {
-                private String nextToken = null;
-                private boolean done = false;
-                private boolean successRecorded = false;
-
-                @Override
-                public boolean hasNext() {
-                    if (done) return false;
-                    if (nextToken != null) return true;
-                    while (lineIterator.hasNext()) {
-                        String line = lineIterator.next();
-                        if (line.startsWith("data:")) {
-                            String json = line.substring(5).trim();
-                            if ("[DONE]".equals(json)) {
-                                markDone(true);
-                                return false;
-                            }
-                            try {
-                                JsonNode node = JSON.readTree(json);
-                                String token = node.path("output").path("text").asText("");
-                                if (!token.isEmpty()) {
-                                    nextToken = token;
-                                    return true;
-                                }
-                            } catch (Exception e) {
-                                log.debug("Skip malformed SSE line: {}", line);
-                            }
-                        }
-                    }
-                    markDone(true);
-                    return false;
-                }
-
-                @Override
-                public String next() {
-                    if (!hasNext()) throw new java.util.NoSuchElementException();
-                    String token = nextToken;
-                    nextToken = null;
-                    return token;
-                }
-
-                private void markDone(boolean success) {
-                    if (!successRecorded) {
-                        successRecorded = true;
-                        done = true;
-                        if (success) {
-                            circuitBreaker.recordSuccess();
-                        } else {
-                            circuitBreaker.recordFailure();
-                        }
-                    }
-                }
-            };
+            Iterator<String> tokenIterator = parseSseTokens(lineIterator);
 
             Iterator<String> safeIterator = new Iterator<String>() {
                 @Override public boolean hasNext() {
-                    try { return tokenIterator.hasNext(); }
-                    catch (Exception e) { circuitBreaker.recordFailure(); throw e; }
+                    try {
+                        boolean hasMore = tokenIterator.hasNext();
+                        if (!hasMore) {
+                            if (cbRecorded.compareAndSet(false, true)) {
+                                circuitBreaker.recordSuccess();
+                            }
+                        }
+                        return hasMore;
+                    } catch (Exception e) {
+                        if (cbRecorded.compareAndSet(false, true)) circuitBreaker.recordFailure();
+                        throw e;
+                    }
                 }
                 @Override public String next() {
                     try { return tokenIterator.next(); }
-                    catch (Exception e) { circuitBreaker.recordFailure(); throw e; }
+                    catch (Exception e) {
+                        if (cbRecorded.compareAndSet(false, true)) circuitBreaker.recordFailure();
+                        throw e;
+                    }
                 }
             };
 
             return new StreamResult(safeIterator, responseBody::close);
         } catch (Exception e) {
-            circuitBreaker.recordFailure();
+            if (cbRecorded.compareAndSet(false, true)) circuitBreaker.recordFailure();
             log.error("Stream call failed", e);
             return new StreamResult(Collections.emptyIterator(), null);
         }
@@ -286,5 +251,53 @@ public class YyAiGatewayImpl implements IYyAiGateway {
         } catch (Exception e) {
             return "ai:cache:" + request.getScene() + ":" + request.getUserPrompt().hashCode();
         }
+    }
+
+    /**
+     * Parse SSE data lines into tokens. Extracts text from "data:" lines,
+     * handles [DONE], and skips malformed lines.
+     * Package-private for testability.
+     */
+    static Iterator<String> parseSseTokens(Iterator<String> lineIterator) {
+        return new Iterator<String>() {
+            private String nextToken = null;
+            private boolean done = false;
+
+            @Override
+            public boolean hasNext() {
+                if (done) return false;
+                if (nextToken != null) return true;
+                while (lineIterator.hasNext()) {
+                    String line = lineIterator.next();
+                    if (line.startsWith("data:")) {
+                        String json = line.substring(5).trim();
+                        if ("[DONE]".equals(json)) {
+                            done = true;
+                            return false;
+                        }
+                        try {
+                            JsonNode node = JSON.readTree(json);
+                            String token = node.path("output").path("text").asText("");
+                            if (!token.isEmpty()) {
+                                nextToken = token;
+                                return true;
+                            }
+                        } catch (Exception e) {
+                            // skip malformed line
+                        }
+                    }
+                }
+                done = true;
+                return false;
+            }
+
+            @Override
+            public String next() {
+                if (!hasNext()) throw new NoSuchElementException();
+                String token = nextToken;
+                nextToken = null;
+                return token;
+            }
+        };
     }
 }
