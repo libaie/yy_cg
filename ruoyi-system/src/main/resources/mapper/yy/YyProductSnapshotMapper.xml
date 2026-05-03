@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyProductSnapshotMapper">
+
+    <resultMap type="YyProductSnapshot" id="YyProductSnapshotResult">
+        <result property="id" column="id"/>
+        <result property="sourcePlatform" column="source_platform"/>
+        <result property="skuId" column="sku_id"/>
+        <result property="productId" column="product_id"/>
+        <result property="sourceApi" column="source_api"/>
+        <result property="drugId" column="drug_id"/>
+        <result property="fusionConfidence" column="fusion_confidence"/>
+        <result property="commonName" column="common_name"/>
+        <result property="barcode" column="barcode"/>
+        <result property="approvalNumber" column="approval_number"/>
+        <result property="manufacturer" column="manufacturer"/>
+        <result property="specification" column="specification"/>
+        <result property="priceCurrent" column="price_current"/>
+        <result property="stockQuantity" column="stock_quantity"/>
+        <result property="productData" column="product_data"
+                typeHandler="com.ruoyi.yy.handler.JsonStringTypeHandler"/>
+        <result property="rawDataPayload" column="raw_data_payload"
+                typeHandler="com.ruoyi.yy.handler.JsonStringTypeHandler"/>
+        <result property="collectedAt" column="collected_at"/>
+        <result property="syncedAt" column="synced_at"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectYyProductSnapshotById" resultMap="YyProductSnapshotResult">
+        SELECT * FROM yy_product_snapshot WHERE id = #{id}
+    </select>
+
+    <select id="selectYyProductSnapshotByPlatformSku" resultMap="YyProductSnapshotResult">
+        SELECT * FROM yy_product_snapshot
+        WHERE source_platform = #{platformCode} AND sku_id = #{skuId}
+    </select>
+
+    <select id="selectYyProductSnapshotByDrugId" resultMap="YyProductSnapshotResult">
+        SELECT * FROM yy_product_snapshot WHERE drug_id = #{drugId}
+    </select>
+
+    <insert id="insertYyProductSnapshot" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO yy_product_snapshot (source_platform, sku_id, product_id, source_api,
+            drug_id, fusion_confidence, common_name, barcode, approval_number,
+            manufacturer, specification, price_current, stock_quantity,
+            product_data, raw_data_payload, collected_at,
+            create_by, create_time, update_by, update_time)
+        VALUES (#{sourcePlatform}, #{skuId}, #{productId}, #{sourceApi},
+            #{drugId}, #{fusionConfidence}, #{commonName}, #{barcode}, #{approvalNumber},
+            #{manufacturer}, #{specification}, #{priceCurrent}, #{stockQuantity},
+            #{productData, typeHandler=com.ruoyi.yy.handler.JsonStringTypeHandler},
+            #{rawDataPayload, typeHandler=com.ruoyi.yy.handler.JsonStringTypeHandler},
+            #{collectedAt},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
+    </insert>
+
+    <update id="updateYyProductSnapshotDrugBinding">
+        UPDATE yy_product_snapshot
+        SET drug_id = #{drugId}, fusion_confidence = #{fusionConfidence}
+        WHERE id = #{id}
+    </update>
+
+    <insert id="batchInsertYyProductSnapshot" parameterType="java.util.List">
+        INSERT INTO yy_product_snapshot (source_platform, sku_id, product_id, source_api,
+            drug_id, fusion_confidence, common_name, barcode, approval_number,
+            manufacturer, specification, price_current, stock_quantity,
+            product_data, raw_data_payload, collected_at,
+            create_by, create_time, update_by, update_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.sourcePlatform}, #{item.skuId}, #{item.productId}, #{item.sourceApi},
+            #{item.drugId}, #{item.fusionConfidence}, #{item.commonName}, #{item.barcode},
+            #{item.approvalNumber}, #{item.manufacturer}, #{item.specification},
+            #{item.priceCurrent}, #{item.stockQuantity},
+            #{item.productData, typeHandler=com.ruoyi.yy.handler.JsonStringTypeHandler},
+            #{item.rawDataPayload, typeHandler=com.ruoyi.yy.handler.JsonStringTypeHandler},
+            #{item.collectedAt},
+            #{item.createBy}, #{item.createTime}, #{item.updateBy}, #{item.updateTime})
+        </foreach>
+    </insert>
+
+    <select id="selectYyProductSnapshotByPlatformAndSkuIds" resultMap="YyProductSnapshotResult">
+        SELECT * FROM yy_product_snapshot
+        WHERE source_platform = #{platform}
+        AND sku_id IN
+        <foreach collection="skuIds" item="skuId" open="(" separator="," close=")">
+            #{skuId}
+        </foreach>
+    </select>
+</mapper>
