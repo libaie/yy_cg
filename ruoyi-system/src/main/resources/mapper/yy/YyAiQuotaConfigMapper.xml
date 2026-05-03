@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyAiQuotaConfigMapper">
+    <resultMap type="com.ruoyi.yy.domain.YyAiQuotaConfig" id="YyAiQuotaConfigResult">
+        <id property="id" column="id"/>
+        <result property="tierLevel" column="tier_level"/>
+        <result property="dailyChatLimit" column="daily_chat_limit"/>
+        <result property="dailyToolLimit" column="daily_tool_limit"/>
+        <result property="maxTokensPerReq" column="max_tokens_per_req"/>
+        <result property="enabled" column="enabled"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <select id="selectByTierLevel" parameterType="Integer" resultMap="YyAiQuotaConfigResult">
+        select * from yy_ai_quota_config where tier_level = #{tierLevel}
+    </select>
+
+    <select id="selectAll" resultMap="YyAiQuotaConfigResult">
+        select * from yy_ai_quota_config order by tier_level
+    </select>
+
+    <update id="updateById" parameterType="com.ruoyi.yy.domain.YyAiQuotaConfig">
+        update yy_ai_quota_config
+        <set>
+            <if test="dailyChatLimit != null">daily_chat_limit = #{dailyChatLimit},</if>
+            <if test="dailyToolLimit != null">daily_tool_limit = #{dailyToolLimit},</if>
+            <if test="maxTokensPerReq != null">max_tokens_per_req = #{maxTokensPerReq},</if>
+            <if test="enabled != null">enabled = #{enabled},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where id = #{id}
+    </update>
+</mapper>
