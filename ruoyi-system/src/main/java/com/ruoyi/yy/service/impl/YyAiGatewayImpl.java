@@ -19,6 +19,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -88,6 +90,125 @@ public class YyAiGatewayImpl implements IYyAiGateway {
             circuitBreaker.recordFailure();
             log.error("AI call failed for scene={}", request.getScene(), e);
             return YyAiResponse.fail(e.getMessage());
+        }
+    }
+
+    @Override
+    public StreamResult callStreamResult(YyAiRequest request) {
+        if (!circuitBreaker.allowRequest()) {
+            log.warn("Circuit breaker OPEN for stream, scene={}", request.getScene());
+            return new StreamResult(Collections.emptyIterator(), null);
+        }
+
+        try {
+            String systemMsg = request.getSystemPrompt() != null ? request.getSystemPrompt() : "";
+            String userMsg = request.getUserPrompt() != null ? request.getUserPrompt() : "";
+            String requestBody = JSON.writeValueAsString(Map.of(
+                "model", request.getModel(),
+                "input", Map.of(
+                    "messages", new Object[]{
+                        Map.of("role", "system", "content", systemMsg),
+                        Map.of("role", "user", "content", userMsg)
+                    }
+                ),
+                "parameters", Map.of(
+                    "temperature", request.getTemperature(),
+                    "max_tokens", request.getMaxTokens(),
+                    "result_format", "message",
+                    "stream", true
+                )
+            ));
+
+            HttpRequest httpReq = HttpRequest.newBuilder()
+                .uri(URI.create(endpoint))
+                .header("Content-Type", "application/json")
+                .header("Authorization", "Bearer " + apiKey)
+                .header("Accept", "text/event-stream")
+                .timeout(Duration.ofSeconds(60))
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
+
+            HttpResponse<java.util.stream.Stream<String>> httpResponse =
+                HTTP_CLIENT.send(httpReq, HttpResponse.BodyHandlers.ofLines());
+
+            if (httpResponse.statusCode() != 200) {
+                circuitBreaker.recordFailure();
+                httpResponse.body().close();
+                return new StreamResult(Collections.emptyIterator(), null);
+            }
+
+            java.util.stream.Stream<String> responseBody = httpResponse.body();
+            Iterator<String> lineIterator = responseBody.iterator();
+            Iterator<String> tokenIterator = new Iterator<String>() {
+                private String nextToken = null;
+                private boolean done = false;
+                private boolean successRecorded = false;
+
+                @Override
+                public boolean hasNext() {
+                    if (done) return false;
+                    if (nextToken != null) return true;
+                    while (lineIterator.hasNext()) {
+                        String line = lineIterator.next();
+                        if (line.startsWith("data:")) {
+                            String json = line.substring(5).trim();
+                            if ("[DONE]".equals(json)) {
+                                markDone(true);
+                                return false;
+                            }
+                            try {
+                                JsonNode node = JSON.readTree(json);
+                                String token = node.path("output").path("text").asText("");
+                                if (!token.isEmpty()) {
+                                    nextToken = token;
+                                    return true;
+                                }
+                            } catch (Exception e) {
+                                log.debug("Skip malformed SSE line: {}", line);
+                            }
+                        }
+                    }
+                    markDone(true);
+                    return false;
+                }
+
+                @Override
+                public String next() {
+                    if (!hasNext()) throw new java.util.NoSuchElementException();
+                    String token = nextToken;
+                    nextToken = null;
+                    return token;
+                }
+
+                private void markDone(boolean success) {
+                    if (!successRecorded) {
+                        successRecorded = true;
+                        done = true;
+                        if (success) {
+                            circuitBreaker.recordSuccess();
+                        } else {
+                            circuitBreaker.recordFailure();
+                        }
+                    }
+                }
+            };
+
+            Iterator<String> safeIterator = new Iterator<String>() {
+                @Override public boolean hasNext() {
+                    try { return tokenIterator.hasNext(); }
+                    catch (Exception e) { circuitBreaker.recordFailure(); throw e; }
+                }
+                @Override public String next() {
+                    try { return tokenIterator.next(); }
+                    catch (Exception e) { circuitBreaker.recordFailure(); throw e; }
+                }
+            };
+
+            return new StreamResult(safeIterator, responseBody::close);
+        } catch (Exception e) {
+            circuitBreaker.recordFailure();
+            log.error("Stream call failed", e);
+            return new StreamResult(Collections.emptyIterator(), null);
         }
     }
 
