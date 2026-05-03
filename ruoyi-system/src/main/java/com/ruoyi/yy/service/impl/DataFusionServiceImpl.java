@@ -8,8 +8,10 @@ import com.ruoyi.common.utils.decrypt.DataDecryptUtil;
 import com.ruoyi.yy.domain.YyPlatform;
 import com.ruoyi.yy.domain.YyPlatformKeyVault;
 import com.ruoyi.yy.domain.YyProductFusionGroup;
+import com.ruoyi.yy.domain.YyProductSnapshot;
 import com.ruoyi.yy.domain.YyStandardProduct;
 import com.ruoyi.yy.dto.YyDataIngestDTO;
+import com.ruoyi.yy.mapper.YyProductSnapshotMapper;
 import com.ruoyi.yy.mapper.YyStandardProductMapper;
 import com.ruoyi.yy.service.IDataFusionService;
 import com.ruoyi.yy.service.IYyFieldMappingService;
@@ -59,6 +61,12 @@ public class DataFusionServiceImpl implements IDataFusionService {
 
     @Autowired
     private IYyProductFusionGroupService yyProductFusionGroupService;
+
+    @Autowired
+    private YyFusionEngineImpl fusionEngine;
+
+    @Autowired
+    private YyProductSnapshotMapper productSnapshotMapper;
 
     // ========== 标准字段名常量 ==========
     private static final String F_PRODUCT_ID = "product_id";
@@ -133,7 +141,7 @@ public class DataFusionServiceImpl implements IDataFusionService {
     ));
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> ingest(YyDataIngestDTO dto) {
         String platformCode = dto.getPlatformCode();
         String encryptedData = dto.getEncryptData();
@@ -220,6 +228,62 @@ public class DataFusionServiceImpl implements IDataFusionService {
             yyStandardProductMapper.upsertYyStandardProduct(product);
 
             touchedGroupIds.add(group.getId());
+        }
+
+        // ====== Step 5b: 创建快照并执行融合匹配 ======
+        List<YyProductSnapshot> snapshots = new ArrayList<>();
+        for (YyStandardProduct product : products) {
+            YyProductSnapshot snapshot = new YyProductSnapshot();
+            snapshot.setSourcePlatform(platformCode);
+            snapshot.setSkuId(product.getSkuId());
+            snapshot.setProductId(product.getProductId());
+            snapshot.setSourceApi(apiCode);
+            snapshot.setCommonName(product.getCommonName());
+            snapshot.setBarcode(product.getBarcode());
+            snapshot.setApprovalNumber(product.getApprovalNumber());
+            snapshot.setManufacturer(product.getManufacturer());
+            snapshot.setSpecification(product.getSpecification());
+            snapshot.setPriceCurrent(product.getPriceCurrent());
+            snapshot.setStockQuantity(product.getStockQuantity());
+            snapshot.setProductData(product.getRawDataPayload() != null ? product.getRawDataPayload() : "{}");
+            snapshot.setCollectedAt(product.getCollectedAt() != null ? product.getCollectedAt() : new Date());
+            snapshots.add(snapshot);
+        }
+
+        // 批量查询已存在的快照（去重）
+        List<String> skuIds = snapshots.stream()
+            .map(YyProductSnapshot::getSkuId)
+            .filter(Objects::nonNull)
+            .collect(java.util.stream.Collectors.toList());
+        Set<String> existingSkus = new HashSet<>();
+        if (!skuIds.isEmpty()) {
+            List<YyProductSnapshot> existing = productSnapshotMapper
+                .selectYyProductSnapshotByPlatformAndSkuIds(platformCode, skuIds);
+            existingSkus = existing.stream()
+                .map(YyProductSnapshot::getSkuId)
+                .collect(java.util.stream.Collectors.toSet());
+        }
+
+        // 只插入新快照
+        List<YyProductSnapshot> newSnapshots = snapshots.stream()
+            .filter(s -> s.getSkuId() == null || !existingSkus.contains(s.getSkuId()))
+            .collect(java.util.stream.Collectors.toList());
+        if (!newSnapshots.isEmpty()) {
+            productSnapshotMapper.batchInsertYyProductSnapshot(newSnapshots);
+        }
+
+        // 对每个快照执行融合匹配
+        for (YyProductSnapshot snapshot : snapshots) {
+            com.ruoyi.yy.domain.YyFusionResult fusionResult = fusionEngine.fuse(snapshot);
+            if (fusionResult.isMatched()) {
+                snapshot.setDrugId(fusionResult.getDrugId());
+                snapshot.setFusionConfidence(fusionResult.getConfidence());
+                log.info("Product fused: sku={} → drug_id={} via {} conf={}",
+                    snapshot.getSkuId(), fusionResult.getDrugId(),
+                    fusionResult.getMatchMethod(), fusionResult.getConfidence());
+            } else {
+                log.info("Product needs review: sku={}", snapshot.getSkuId());
+            }
         }
 
         // ====== Step 7: 更新所有受影响的融合分组聚合 ======
@@ -847,7 +911,7 @@ public class DataFusionServiceImpl implements IDataFusionService {
             }
             return sb.toString();
         } catch (Exception e) {
-            return String.valueOf(Math.abs(raw.hashCode()));
+            throw new RuntimeException("Failed to generate fusion key for: " + raw, e);
         }
     }
 
