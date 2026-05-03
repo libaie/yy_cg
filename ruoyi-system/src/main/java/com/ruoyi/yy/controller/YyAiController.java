@@ -1,6 +1,7 @@
 package com.ruoyi.yy.controller;
 
 import com.ruoyi.common.core.controller.BaseController;
+import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.yy.domain.YyAiRequest;
 import com.ruoyi.yy.domain.YyMemberSubscription;
 import com.ruoyi.yy.domain.YyMemberTier;
@@ -34,6 +35,9 @@ public class YyAiController extends BaseController {
     @Autowired private IYyAiGateway aiGateway;
     @Autowired(required = false) private YyMemberSubscriptionMapper subscriptionMapper;
     @Autowired(required = false) private YyMemberTierMapper tierMapper;
+    @Autowired private com.ruoyi.yy.service.impl.YyAiDrugQaImpl drugQa;
+    @Autowired private com.ruoyi.yy.service.impl.YyAiInsightImpl insightService;
+    @Autowired private com.ruoyi.yy.service.impl.YyAiRecommendImpl recommendService;
 
     // 有界线程池：核心 4 线程，最大 16 线程，队列容量 64，拒绝策略 CallerRunsPolicy
     private final ExecutorService sseExecutor = new ThreadPoolExecutor(
@@ -126,6 +130,67 @@ public class YyAiController extends BaseController {
         });
 
         return emitter;
+    }
+
+    @PostMapping("/advisor")
+    public AjaxResult advisor(@RequestBody Map<String, Object> body) {
+        Long userId = getUserId();
+        int tierLevel = getUserTierLevel(userId);
+        if (!usageService.checkQuota(userId, "tool", tierLevel)) {
+            return AjaxResult.error(429, "今日快捷功能次数已用完，升级会员解锁更多");
+        }
+        String drugName = (String) body.getOrDefault("drugName", "");
+        usageService.recordUsage(userId, "tool", "advisor", 0);
+        return success("采购顾问功能已调用");
+    }
+
+    @PostMapping("/insight")
+    public AjaxResult insightApi(@RequestBody Map<String, Object> body) {
+        Long userId = getUserId();
+        int tierLevel = getUserTierLevel(userId);
+        if (!usageService.checkQuota(userId, "tool", tierLevel)) {
+            return AjaxResult.error(429, "今日快捷功能次数已用完，升级会员解锁更多");
+        }
+        String drugName = (String) body.getOrDefault("drugName", "");
+        String prices = body.getOrDefault("prices", "[]").toString();
+        Map<String, Object> result = insightService.analyze(drugName, prices);
+        usageService.recordUsage(userId, "tool", "insight", 0);
+        return success(result);
+    }
+
+    @PostMapping("/drug-qa")
+    public AjaxResult drugQa(@RequestBody Map<String, Object> body) {
+        Long userId = getUserId();
+        int tierLevel = getUserTierLevel(userId);
+        if (!usageService.checkQuota(userId, "tool", tierLevel)) {
+            return AjaxResult.error(429, "今日快捷功能次数已用完，升级会员解锁更多");
+        }
+        String question = (String) body.getOrDefault("question", "");
+        String drugName = (String) body.getOrDefault("drugName", "");
+        Map<String, Object> result = drugQa.ask(question, drugName);
+        usageService.recordUsage(userId, "tool", "drug_qa", 0);
+        return success(result);
+    }
+
+    @PostMapping("/recommend")
+    public AjaxResult recommendApi(@RequestBody Map<String, Object> body) {
+        Long userId = getUserId();
+        int tierLevel = getUserTierLevel(userId);
+        if (!usageService.checkQuota(userId, "tool", tierLevel)) {
+            return AjaxResult.error(429, "今日快捷功能次数已用完，升级会员解锁更多");
+        }
+        String category = (String) body.getOrDefault("category", "");
+        int limit = body.containsKey("limit") ? ((Number) body.get("limit")).intValue() : 5;
+        Map<String, Object> result = recommendService.recommend(category, limit);
+        usageService.recordUsage(userId, "tool", "recommend", 0);
+        return success(result);
+    }
+
+    @GetMapping("/usage")
+    public AjaxResult usage() {
+        Long userId = getUserId();
+        int tierLevel = getUserTierLevel(userId);
+        return success(usageService.getTodayUsage(userId, tierLevel));
     }
 
     /**

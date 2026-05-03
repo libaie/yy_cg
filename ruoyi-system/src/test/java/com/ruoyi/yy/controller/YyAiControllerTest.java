@@ -36,6 +36,9 @@ class YyAiControllerTest {
         ReflectionTestUtils.setField(controller, "aiGateway", aiGateway);
         ReflectionTestUtils.setField(controller, "subscriptionMapper", mock(YyMemberSubscriptionMapper.class));
         ReflectionTestUtils.setField(controller, "tierMapper", mock(YyMemberTierMapper.class));
+        ReflectionTestUtils.setField(controller, "drugQa", mock(com.ruoyi.yy.service.impl.YyAiDrugQaImpl.class));
+        ReflectionTestUtils.setField(controller, "insightService", mock(com.ruoyi.yy.service.impl.YyAiInsightImpl.class));
+        ReflectionTestUtils.setField(controller, "recommendService", mock(com.ruoyi.yy.service.impl.YyAiRecommendImpl.class));
     }
 
     @Test
@@ -98,5 +101,25 @@ class YyAiControllerTest {
         assertEquals(1200, controller.getMaxTokens(2));
         assertEquals(800, controller.getMaxTokens(0));
         assertEquals(800, controller.getMaxTokens(1));
+    }
+
+    @Test
+    void advisor_quotaExceeded_returnsError() {
+        YyAiController spyCtrl = spy(controller);
+        doReturn(1L).when(spyCtrl).getUserId();
+        when(usageService.checkQuota(eq(1L), eq("tool"), anyInt())).thenReturn(false);
+
+        var result = spyCtrl.advisor(Map.of("drugName", "阿莫西林"));
+        assertNotNull(result);
+    }
+
+    @Test
+    void usage_returnsSuccess() {
+        YyAiController spyCtrl = spy(controller);
+        doReturn(1L).when(spyCtrl).getUserId();
+        when(usageService.getTodayUsage(eq(1L), anyInt())).thenReturn(Map.of("chatUsed", 3));
+
+        var result = spyCtrl.usage();
+        assertNotNull(result);
     }
 }
