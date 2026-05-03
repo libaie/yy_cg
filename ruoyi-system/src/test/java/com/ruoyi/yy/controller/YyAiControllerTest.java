@@ -39,6 +39,7 @@ class YyAiControllerTest {
         ReflectionTestUtils.setField(controller, "drugQa", mock(com.ruoyi.yy.service.impl.YyAiDrugQaImpl.class));
         ReflectionTestUtils.setField(controller, "insightService", mock(com.ruoyi.yy.service.impl.YyAiInsightImpl.class));
         ReflectionTestUtils.setField(controller, "recommendService", mock(com.ruoyi.yy.service.impl.YyAiRecommendImpl.class));
+        ReflectionTestUtils.setField(controller, "quotaConfigMapper", mock(com.ruoyi.yy.mapper.YyAiQuotaConfigMapper.class));
     }
 
     @Test
@@ -120,6 +121,23 @@ class YyAiControllerTest {
         when(usageService.getTodayUsage(eq(1L), anyInt())).thenReturn(Map.of("chatUsed", 3));
 
         var result = spyCtrl.usage();
+        assertNotNull(result);
+    }
+
+    @Test
+    void quotaList_nullMapper_returnsError() {
+        ReflectionTestUtils.setField(controller, "quotaConfigMapper", null);
+        var result = controller.quotaList();
+        assertNotNull(result);
+    }
+
+    @Test
+    void quotaList_withMapper_returnsSuccess() {
+        com.ruoyi.yy.mapper.YyAiQuotaConfigMapper quotaMapper = mock(com.ruoyi.yy.mapper.YyAiQuotaConfigMapper.class);
+        when(quotaMapper.selectAll()).thenReturn(List.of());
+        ReflectionTestUtils.setField(controller, "quotaConfigMapper", quotaMapper);
+
+        var result = controller.quotaList();
         assertNotNull(result);
     }
 }

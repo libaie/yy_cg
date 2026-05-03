@@ -193,6 +193,30 @@ public class YyAiController extends BaseController {
         return success(usageService.getTodayUsage(userId, tierLevel));
     }
 
+    // ===== 配额管理端点（管理端使用）=====
+
+    @Autowired(required = false)
+    private com.ruoyi.yy.mapper.YyAiQuotaConfigMapper quotaConfigMapper;
+
+    @GetMapping("/ai-quota/list")
+    public AjaxResult quotaList() {
+        if (quotaConfigMapper == null) return error("配额服务未初始化");
+        return success(quotaConfigMapper.selectAll());
+    }
+
+    @GetMapping("/ai-quota/{id}")
+    public AjaxResult quotaGet(@PathVariable Long id) {
+        if (quotaConfigMapper == null) return error("配额服务未初始化");
+        return success(quotaConfigMapper.selectAll().stream()
+            .filter(c -> c.getId().equals(id)).findFirst().orElse(null));
+    }
+
+    @PutMapping("/ai-quota")
+    public AjaxResult quotaUpdate(@RequestBody com.ruoyi.yy.domain.YyAiQuotaConfig config) {
+        if (quotaConfigMapper == null) return error("配额服务未初始化");
+        return toAjax(quotaConfigMapper.updateById(config));
+    }
+
     /**
      * 获取用户会员等级
      * YyUser → YyMemberSubscription → YyMemberTier.memberLevel
