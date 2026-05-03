@@ -21,7 +21,9 @@
     </resultMap>
 
     <select id="selectYyAiPromptTemplateByCode" resultMap="YyAiPromptTemplateResult">
-        SELECT * FROM yy_ai_prompt_template WHERE template_code = #{templateCode} AND status = 1
+        SELECT id, template_code, template_name, scene, system_prompt, user_prompt_template,
+               model, temperature, max_tokens, status, create_by, create_time, update_by, update_time
+        FROM yy_ai_prompt_template WHERE template_code = #{templateCode} AND status = 1
     </select>
 
     <insert id="insertYyAiPromptTemplate" useGeneratedKeys="true" keyProperty="id">

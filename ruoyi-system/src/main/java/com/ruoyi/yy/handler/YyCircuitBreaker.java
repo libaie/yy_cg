@@ -28,35 +28,34 @@ public class YyCircuitBreaker {
         this.openDurationMs = openDurationMs;
     }
 
-    public boolean allowRequest() {
+    public synchronized boolean allowRequest() {
         State current = state.get();
         if (current == State.CLOSED) {
             return true;
         }
         if (current == State.OPEN) {
             if (System.currentTimeMillis() - lastFailureTime.get() > openDurationMs) {
-                if (state.compareAndSet(State.OPEN, State.HALF_OPEN)) {
-                    halfOpenPermits.set(1);
-                    return true;
-                }
-            } else {
-                return false;
+                state.set(State.HALF_OPEN);
+                halfOpenPermits.set(1);
+                return true;
             }
+            return false;
         }
+        // HALF_OPEN — allow exactly one probe request
         if (halfOpenPermits.decrementAndGet() >= 0) {
             return true;
         }
-        halfOpenPermits.compareAndSet(-1, 0);
+        halfOpenPermits.set(0);
         return false;
     }
 
-    public void recordSuccess() {
+    public synchronized void recordSuccess() {
         failureCount.set(0);
         halfOpenPermits.set(0);
         state.set(State.CLOSED);
     }
 
-    public void recordFailure() {
+    public synchronized void recordFailure() {
         lastFailureTime.set(System.currentTimeMillis());
         if (failureCount.incrementAndGet() >= failureThreshold) {
             state.set(State.OPEN);

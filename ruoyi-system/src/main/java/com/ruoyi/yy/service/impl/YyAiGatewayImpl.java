@@ -94,12 +94,14 @@ public class YyAiGatewayImpl implements IYyAiGateway {
     private YyAiResponse callDashScope(YyAiRequest request) {
         long startTime = System.currentTimeMillis();
         try {
+            String systemMsg = request.getSystemPrompt() != null ? request.getSystemPrompt() : "";
+            String userMsg = request.getUserPrompt() != null ? request.getUserPrompt() : "";
             String requestBody = JSON.writeValueAsString(Map.of(
                 "model", request.getModel(),
                 "input", Map.of(
                     "messages", new Object[]{
-                        Map.of("role", "system", "content", request.getSystemPrompt()),
-                        Map.of("role", "user", "content", request.getUserPrompt())
+                        Map.of("role", "system", "content", systemMsg),
+                        Map.of("role", "user", "content", userMsg)
                     }
                 ),
                 "parameters", Map.of(
@@ -152,9 +154,16 @@ public class YyAiGatewayImpl implements IYyAiGateway {
     }
 
     private String buildCacheKey(YyAiRequest request) {
-        String hash = Integer.toHexString(
-            (request.getScene() + "|" + request.getUserPrompt()).hashCode()
-        );
-        return "ai:cache:" + request.getScene() + ":" + hash;
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest((request.getScene() + "|" + request.getUserPrompt()).getBytes());
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 8; i++) {
+                sb.append(String.format("%02x", digest[i]));
+            }
+            return "ai:cache:" + request.getScene() + ":" + sb;
+        } catch (Exception e) {
+            return "ai:cache:" + request.getScene() + ":" + request.getUserPrompt().hashCode();
+        }
     }
 }
