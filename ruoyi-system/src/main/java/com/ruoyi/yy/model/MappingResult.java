@@ -10,9 +10,10 @@ import java.util.Map;
  * Wrapper class for the field mapping engine's output.
  * <p>
  * Holds mapped field values, required-field failures, and validation errors
- * produced during the field-mapping pipeline step. All collections are
- * unmodifiable by the time the constructor returns, making instances safe
- * to pass across pipeline stages.
+ * produced during the field-mapping pipeline step. All collection
+ * <em>structures</em> are unmodifiable by the time the constructor returns,
+ * but map values are shallow references — callers should not mutate values
+ * stored inside the map after construction.
  * </p>
  *
  * @author fdAgent

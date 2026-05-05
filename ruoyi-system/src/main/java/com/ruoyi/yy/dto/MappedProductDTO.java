@@ -168,10 +168,10 @@ public class MappedProductDTO {
     /** 营销短标签 */
     private List<String> marketingTags;
 
-    /** 复杂活动明细列表 */
+    /** 复杂活动明细列表（pipeline-intermediate only — 无对应 YyStandardProduct 字段） */
     private String activityDetails;
 
-    /** 限购与起批规则 */
+    /** 限购与起批规则（pipeline-intermediate only — 无对应 YyStandardProduct 字段） */
     private String purchaseLimits;
 
     // ========== 融合相关 ==========
