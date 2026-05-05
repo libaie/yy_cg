@@ -6,6 +6,8 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
 import com.ruoyi.yy.domain.YyFieldMapping;
+import com.ruoyi.yy.domain.YyFieldMappingRule;
+import com.ruoyi.yy.mapper.YyFieldMappingRuleMapper;
 import com.ruoyi.yy.service.IYyFieldMappingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,6 +25,9 @@ public class YyFieldMappingController extends BaseController {
 
     @Autowired
     private IYyFieldMappingService yyFieldMappingService;
+
+    @Autowired
+    private YyFieldMappingRuleMapper ruleMapper;
 
     /** 查询字段映射配置列表 */
     @PreAuthorize("@ss.hasPermi('yy:fieldMapping:list')")
@@ -81,5 +86,43 @@ public class YyFieldMappingController extends BaseController {
     @DeleteMapping("/{ids}")
     public AjaxResult remove(@PathVariable Long[] ids) {
         return toAjax(yyFieldMappingService.deleteYyFieldMappingByIds(ids));
+    }
+
+    // ========== 字段映射规则（V2） ==========
+
+    /** 查询字段映射规则列表 */
+    @PreAuthorize("@ss.hasPermi('yy:fieldMapping:list')")
+    @GetMapping("/rule/list")
+    public AjaxResult ruleList(@RequestParam(required = false) Long platformId,
+                               @RequestParam(required = false) String apiCode) {
+        List<YyFieldMappingRule> list = ruleMapper.selectByPlatformAndApi(platformId, apiCode);
+        return success(list);
+    }
+
+    /** 新增字段映射规则 */
+    @PreAuthorize("@ss.hasPermi('yy:fieldMapping:add')")
+    @Log(title = "字段映射规则", businessType = BusinessType.INSERT)
+    @PostMapping("/rule")
+    public AjaxResult addRule(@RequestBody YyFieldMappingRule rule) {
+        ruleMapper.insert(rule);
+        return success();
+    }
+
+    /** 修改字段映射规则 */
+    @PreAuthorize("@ss.hasPermi('yy:fieldMapping:edit')")
+    @Log(title = "字段映射规则", businessType = BusinessType.UPDATE)
+    @PutMapping("/rule")
+    public AjaxResult editRule(@RequestBody YyFieldMappingRule rule) {
+        ruleMapper.update(rule);
+        return success();
+    }
+
+    /** 删除字段映射规则 */
+    @PreAuthorize("@ss.hasPermi('yy:fieldMapping:remove')")
+    @Log(title = "字段映射规则", businessType = BusinessType.DELETE)
+    @DeleteMapping("/rule/{ids}")
+    public AjaxResult removeRule(@PathVariable Long[] ids) {
+        for (Long id : ids) ruleMapper.deleteById(id);
+        return success();
     }
 }
