@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -80,10 +81,15 @@ public class DataIngestOrchestrator implements IDataIngestService {
     public Map<String, Object> ingest(YyDataIngestDTO dto) {
         String platformCode = dto.getPlatformCode();
 
+        // Fix 3: null guard — reject null/blank platformCode immediately
+        if (platformCode == null || platformCode.isBlank()) {
+            return buildResult(0, 0, 0, "platformCode 不能为空");
+        }
+
         try {
             return doIngest(dto);
         } catch (Exception e) {
-            log.error("Ingest pipeline failed for platform={}", dto.getPlatformCode(), e);
+            log.error("Ingest pipeline failed for platform={}", platformCode, e);
             return degradedFallback(platformCode);
         }
     }
@@ -120,6 +126,7 @@ public class DataIngestOrchestrator implements IDataIngestService {
         // ====== Step 5: 融合 + 快照 + 价格历史 ======
         Set<Long> touchedGroupIds = new HashSet<>();
         int totalMapped = 0;
+        int newGroups = 0;
 
         for (MappingResult result : results) {
             if (result.hasRequiredFieldFailures()) {
@@ -131,10 +138,29 @@ public class DataIngestOrchestrator implements IDataIngestService {
             // 5a: 转换为 DTO
             MappedProductDTO productDto = mappingEngine.convertToProduct(result, platformCode);
 
+            // Fix 2: propagate collectedAt from ingest DTO into product DTO
+            if (dto.getCollectedAt() != null && !dto.getCollectedAt().isBlank()) {
+                try {
+                    productDto.setCollectedAt(Date.from(Instant.parse(dto.getCollectedAt())));
+                } catch (Exception e) {
+                    log.warn("Failed to parse collectedAt '{}' for platform={}", dto.getCollectedAt(), platformCode, e);
+                }
+            }
+
             // 5b: 获取或创建融合分组
             YyProductFusionGroup group = fusionService.getOrCreateGroup(productDto, platformCode);
             if (group != null) {
                 touchedGroupIds.add(group.getId());
+
+                // Fix 1: detect new groups by comparing createTime ≈ updateTime
+                Date createTime = group.getCreateTime();
+                Date updateTime = group.getUpdateTime();
+                if (createTime != null && updateTime != null) {
+                    long diff = Math.abs(createTime.getTime() - updateTime.getTime());
+                    if (diff < 1000) {
+                        newGroups++;
+                    }
+                }
 
                 // 5c: 构建快照
                 YyProductSnapshot snapshot = buildSnapshot(productDto, platformCode, apiCode);
@@ -154,7 +180,7 @@ public class DataIngestOrchestrator implements IDataIngestService {
             fusionService.updateAggregation(groupId);
         }
 
-        return buildResult(totalMapped, touchedGroupIds.size(), 0, "融合成功");
+        return buildResult(totalMapped, touchedGroupIds.size(), newGroups, "融合成功");
     }
 
     // ======================== degradedFallback ========================
