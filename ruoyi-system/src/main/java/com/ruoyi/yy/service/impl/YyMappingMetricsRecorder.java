@@ -25,7 +25,7 @@ public class YyMappingMetricsRecorder {
     @Autowired
     private YyMappingMetricsMapper metricsMapper;
 
-    private final ConcurrentHashMap<String, Map<String, Object>> buffer = new ConcurrentHashMap<>();
+    private volatile ConcurrentHashMap<String, Map<String, Object>> buffer = new ConcurrentHashMap<>();
 
     /**
      * 记录一次字段映射尝试的结果。
@@ -43,12 +43,13 @@ public class YyMappingMetricsRecorder {
                        boolean success, boolean wasNull,
                        boolean transformFailed, boolean validationFailed,
                        String sampleValue) {
-        String key = platformId + "|" + (apiCode != null ? apiCode : "") + "|" + standardField;
+        String normalizedApiCode = apiCode != null ? apiCode : "";
+        String key = platformId + "|" + normalizedApiCode + "|" + standardField;
         buffer.compute(key, (k, v) -> {
             if (v == null) {
                 v = new HashMap<>();
                 v.put("platformId", platformId);
-                v.put("apiCode", apiCode);
+                v.put("apiCode", normalizedApiCode);
                 v.put("standardField", standardField);
                 v.put("totalAttempts", 1L);
                 v.put("successCount", success ? 1L : 0L);
@@ -82,14 +83,13 @@ public class YyMappingMetricsRecorder {
      */
     @Scheduled(fixedRate = 60000)
     public void flush() {
-        Map<String, Map<String, Object>> snapshot;
-        synchronized (buffer) {
-            if (buffer.isEmpty()) {
-                return;
-            }
-            snapshot = new HashMap<>(buffer);
-            buffer.clear();
+        // 原子替换整个 Map 引用，避免与 record() 的 ConcurrentHashMap.compute() 产生竞态
+        ConcurrentHashMap<String, Map<String, Object>> old = buffer;
+        buffer = new ConcurrentHashMap<>();
+        if (old.isEmpty()) {
+            return;
         }
+        Map<String, Map<String, Object>> snapshot = new HashMap<>(old);
         int successCount = 0;
         for (Map<String, Object> record : snapshot.values()) {
             try {

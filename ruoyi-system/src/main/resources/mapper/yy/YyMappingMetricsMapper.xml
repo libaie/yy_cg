@@ -22,6 +22,7 @@
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     -->
 
+    <!-- 预留 resultMap，供未来需要列名→属性名映射的查询使用；当前 selectByPlatform 使用 resultType="java.util.HashMap" -->
     <resultMap id="MetricsResult" type="java.util.HashMap">
         <result column="platform_id"          property="platformId"/>
         <result column="api_code"             property="apiCode"/>

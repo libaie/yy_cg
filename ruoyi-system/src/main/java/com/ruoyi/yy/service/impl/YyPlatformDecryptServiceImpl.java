@@ -13,9 +13,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 平台数据解密服务实现
@@ -33,6 +33,35 @@ public class YyPlatformDecryptServiceImpl implements IYyPlatformDecryptService {
 
     @Autowired
     private YyPlatformKeyVaultMapper vaultMapper;
+
+    /**
+     * 加密类型字典缓存（dictValue -> dictLabel），一次加载后复用，避免每次 decrypt 调用都重建 Map。
+     */
+    private volatile Map<String, String> encryptTypeMapCache;
+
+    /**
+     * 懒加载加密类型字典映射。
+     */
+    private Map<String, String> getEncryptTypeMap() {
+        Map<String, String> cached = this.encryptTypeMapCache;
+        if (cached != null) {
+            return cached;
+        }
+        synchronized (this) {
+            if (this.encryptTypeMapCache == null) {
+                List<SysDictData> list = DictUtils.getDictCache("yy_platform_encrypt_type");
+                if (list == null || list.isEmpty()) {
+                    throw new RuntimeException("字典配置不存在: yy_platform_encrypt_type");
+                }
+                Map<String, String> map = new ConcurrentHashMap<>();
+                for (SysDictData d : list) {
+                    map.put(d.getDictValue(), d.getDictLabel());
+                }
+                this.encryptTypeMapCache = map;
+            }
+            return this.encryptTypeMapCache;
+        }
+    }
 
     @Override
     public String decrypt(String platformCode, String encryptedData, int dataEncryptType) {
@@ -54,28 +83,17 @@ public class YyPlatformDecryptServiceImpl implements IYyPlatformDecryptService {
                 throw new RuntimeException("密钥配置不存在，平台ID: " + platform.getPId());
             }
 
-            // 3. 查询加密类型字典
-            List<SysDictData> encryptTypeList = DictUtils.getDictCache("yy_platform_encrypt_type");
-            if (encryptTypeList == null || encryptTypeList.isEmpty()) {
-                throw new RuntimeException("字典配置不存在: yy_platform_encrypt_type");
-            }
+            // 3. 使用缓存的加密类型字典映射
+            Map<String, String> encryptTypeMap = getEncryptTypeMap();
 
-            // 4. 构建字典值→标签映射
-            Map<String, String> encryptTypeMap = new HashMap<>();
-            for (SysDictData d : encryptTypeList) {
-                encryptTypeMap.put(d.getDictValue(), d.getDictLabel());
-            }
-
-            // 5. 根据加密类型数值查找对应的标签
+            // 4. 根据加密类型数值查找对应的标签
             String encryptTypeLabel = encryptTypeMap.get(String.valueOf(dataEncryptType));
             if (encryptTypeLabel == null) {
                 throw new RuntimeException("不支持的加密类型: " + dataEncryptType);
             }
 
-            // 6. 委托底层解密
+            // 5. 委托底层解密
             return decryptByType(encryptedData, encryptTypeLabel, vault);
-        } catch (RuntimeException e) {
-            throw e;
         } catch (Exception e) {
             log.error("解密异常", e);
             throw new RuntimeException("解密失败: " + e.getMessage(), e);
@@ -106,12 +124,13 @@ public class YyPlatformDecryptServiceImpl implements IYyPlatformDecryptService {
                     return DataDecryptUtil.decryptSM4CBC(encryptedData, vault.getSymmetricKey(), vault.getSymmetricIv());
                 case "BASE64":
                     byte[] decoded = com.ruoyi.common.utils.sign.Base64.decode(encryptedData);
-                    return decoded != null ? new String(decoded, "UTF-8") : null;
+                    if (decoded == null) {
+                        throw new RuntimeException("Base64解码失败：输入长度无效");
+                    }
+                    return new String(decoded, "UTF-8");
                 default:
                     throw new RuntimeException("不支持的加密类型: " + encryptTypeLabel);
             }
-        } catch (RuntimeException e) {
-            throw e;
         } catch (Exception e) {
             log.error("解密失败: {}", encryptTypeLabel, e);
             throw new RuntimeException("解密失败: " + e.getMessage(), e);
