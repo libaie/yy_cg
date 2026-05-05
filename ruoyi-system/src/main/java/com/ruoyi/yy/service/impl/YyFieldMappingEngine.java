@@ -4,7 +4,9 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.ruoyi.yy.domain.YyFieldMappingRule;
+import com.ruoyi.yy.dto.MappedProductDTO;
 import com.ruoyi.yy.mapper.YyFieldMappingRuleMapper;
+import com.ruoyi.yy.model.MappingResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,45 +40,175 @@ public class YyFieldMappingEngine {
     @Autowired(required = false)
     private YyFieldMappingRuleMapper ruleMapper;
 
-    /** 缓存规则，按 platformId → apiCode → rules */
-    private final Map<String, List<YyFieldMappingRule>> cache = new LinkedHashMap<>();
+    /** 缓存条目，带加载时间戳用于 TTL 过期 */
+    private static class CacheEntry {
+        final List<YyFieldMappingRule> rules;
+        final long loadedAt;
+        CacheEntry(List<YyFieldMappingRule> rules) { this.rules = rules; this.loadedAt = System.currentTimeMillis(); }
+        boolean isStale() { return System.currentTimeMillis() - loadedAt > 600_000; }
+    }
 
-    /** 加载平台+API的规则 */
+    /** 缓存规则，按 platformId → apiCode → CacheEntry，10 分钟 TTL */
+    private final Map<String, CacheEntry> cache = new LinkedHashMap<>();
+
+    /** 加载平台+API的规则（10 分钟缓存，过期自动重载） */
     public List<YyFieldMappingRule> loadRules(Long platformId, String apiCode) {
         if (ruleMapper == null) return Collections.emptyList();
         String key = platformId + "|" + (apiCode != null ? apiCode : "*");
-        return cache.computeIfAbsent(key, k -> {
-            List<YyFieldMappingRule> rules = ruleMapper.selectByPlatformAndApi(platformId, apiCode);
-            // 合并 API 专属规则 + 平台默认规则（api_code=NULL）
-            List<YyFieldMappingRule> defaults = ruleMapper.selectByPlatformAndApi(platformId, null);
-            Set<String> seen = new HashSet<>();
-            for (YyFieldMappingRule r : rules) seen.add(r.getStandardField());
-            for (YyFieldMappingRule d : defaults) {
-                if (!seen.contains(d.getStandardField())) rules.add(d);
-            }
-            rules.sort(Comparator.comparing(YyFieldMappingRule::getSortOrder, Comparator.nullsLast(Comparator.naturalOrder())));
-            return rules;
-        });
+        CacheEntry entry = cache.get(key);
+        if (entry != null && !entry.isStale()) return entry.rules;
+
+        List<YyFieldMappingRule> rules = new ArrayList<>(ruleMapper.selectByPlatformAndApi(platformId, apiCode));
+        // 合并 API 专属规则 + 平台默认规则（api_code=NULL）
+        List<YyFieldMappingRule> defaults = ruleMapper.selectByPlatformAndApi(platformId, null);
+        Set<String> seen = new HashSet<>();
+        for (YyFieldMappingRule r : rules) seen.add(r.getStandardField());
+        for (YyFieldMappingRule d : defaults) {
+            if (!seen.contains(d.getStandardField())) rules.add(d);
+        }
+        rules.sort(Comparator.comparing(YyFieldMappingRule::getSortOrder, Comparator.nullsLast(Comparator.naturalOrder())));
+        cache.put(key, new CacheEntry(rules));
+        return rules;
     }
 
     /** 清除缓存 */
     public void clearCache() { cache.clear(); }
 
     /**
-     * 对原始数据执行所有规则，返回标准化结果 Map
+     * 对原始数据执行所有规则，返回 MappingResult
      * @param rawJson 原始平台 JSON（已解密的字符串或对象）
      * @param platformId 平台ID
      * @param apiCode API编码
      */
     @SuppressWarnings("unchecked")
-    public Map<String, Object> execute(Object rawJson, Long platformId, String apiCode) {
+    public MappingResult execute(Object rawJson, Long platformId, String apiCode) {
         Map<String, Object> data;
         if (rawJson instanceof String) data = JSON.parseObject((String) rawJson);
         else if (rawJson instanceof Map) data = (Map<String, Object>) rawJson;
         else data = new LinkedHashMap<>();
 
         List<YyFieldMappingRule> rules = loadRules(platformId, apiCode);
+        return executeWithRules(data, rules);
+    }
+
+    /**
+     * 批量执行：加载规则一次，对列表中每个数据项逐一执行
+     * @param items 数据项列表
+     * @param platformId 平台ID
+     * @param apiCode API编码
+     */
+    @SuppressWarnings("unchecked")
+    public List<MappingResult> executeBatch(List<?> items, Long platformId, String apiCode) {
+        List<YyFieldMappingRule> rules = loadRules(platformId, apiCode);
+        List<MappingResult> results = new ArrayList<>();
+        for (Object item : items) {
+            Map<String, Object> data;
+            if (item instanceof String) data = JSON.parseObject((String) item);
+            else if (item instanceof Map) data = (Map<String, Object>) item;
+            else data = new LinkedHashMap<>();
+            results.add(executeWithRules(data, rules));
+        }
+        return results;
+    }
+
+    /**
+     * 将 MappingResult 转换为 MappedProductDTO
+     * @param result 字段映射结果
+     * @param platformCode 平台编码
+     */
+    public MappedProductDTO convertToProduct(MappingResult result, String platformCode) {
+        MappedProductDTO dto = new MappedProductDTO();
+        Map<String, Object> fields = result.getFields();
+
+        dto.setSourcePlatform(platformCode);
+
+        // 核心标识
+        dto.setProductId(getString(fields, "productId"));
+        dto.setSkuId(getString(fields, "skuId"));
+        dto.setSourceApi(getString(fields, "sourceApi"));
+        dto.setRawDataPayload(getString(fields, "rawDataPayload"));
+
+        // 基础信息
+        dto.setBarcode(getString(fields, "barcode"));
+        dto.setProductName(getString(fields, "productName"));
+        dto.setCommonName(getString(fields, "commonName"));
+        dto.setBrandName(getString(fields, "brandName"));
+        dto.setManufacturer(getString(fields, "manufacturer"));
+        dto.setApprovalNumber(getString(fields, "approvalNumber"));
+
+        // 分类
+        dto.setCategoryId(getString(fields, "categoryId"));
+        dto.setCategoryName(getString(fields, "categoryName"));
+
+        // 规格
+        dto.setSpecification(getString(fields, "specification"));
+        dto.setUnit(getString(fields, "unit"));
+        dto.setPackingRatio(getString(fields, "packingRatio"));
+
+        // 状态与库存
+        dto.setProductStatus(getString(fields, "productStatus"));
+        dto.setStockQuantity(getInt(fields, "stockQuantity"));
+        dto.setWarehouseStock(wrapJsonArray(fields.get("warehouseStock")));
+
+        // 图片
+        dto.setMainImages(wrapJsonArray(fields.get("mainImages")));
+
+        // 限购
+        dto.setMinOrderQty(getInt(fields, "minOrderQty"));
+        dto.setMaxOrderQty(getInt(fields, "maxOrderQty"));
+
+        // 日期
+        dto.setProductionDate(getDate(fields, "productionDate"));
+        dto.setExpirationDate(getDate(fields, "expirationDate"));
+        dto.setShelfLife(getString(fields, "shelfLife"));
+
+        // 医药专属
+        dto.setIsPrescriptionDrug(getInt(fields, "isPrescriptionDrug"));
+        dto.setMedicareType(getString(fields, "medicareType"));
+        dto.setTraceabilityCodeStatus(getInt(fields, "traceabilityCodeStatus"));
+
+        // 销售
+        dto.setSalesVolume(getInt(fields, "salesVolume"));
+        dto.setShopName(getString(fields, "shopName"));
+
+        // 价格
+        dto.setPriceRetail(getBigDecimal(fields, "priceRetail"));
+        dto.setPriceCurrent(getBigDecimal(fields, "priceCurrent"));
+        dto.setPriceStepRules(wrapJsonArray(fields.get("priceStepRules")));
+        dto.setPriceAssemble(getBigDecimal(fields, "priceAssemble"));
+
+        // 物流与税务
+        dto.setIsTaxIncluded(getInt(fields, "isTaxIncluded"));
+        dto.setFreightAmount(getBigDecimal(fields, "freightAmount"));
+        dto.setFreeShippingThreshold(getBigDecimal(fields, "freeShippingThreshold"));
+
+        // 标签与活动
+        dto.setTags(getStringList(fields, "tags"));
+        dto.setMarketingTags(getStringList(fields, "marketingTags"));
+        dto.setActivityDetails(wrapJsonArray(fields.get("activityDetails")));
+        dto.setPurchaseLimits(wrapJsonArray(fields.get("purchaseLimits")));
+
+        // 融合相关
+        dto.setFusionGroupId(getLong(fields, "fusionGroupId"));
+        dto.setFusionKey(getString(fields, "fusionKey"));
+
+        // 时间
+        dto.setCollectedAt(getDate(fields, "collectedAt"));
+        dto.setSyncedAt(getDate(fields, "syncedAt"));
+
+        return dto;
+    }
+
+    // ---- pipeline core ----
+
+    /**
+     * 对已解析的 data 执行规则管道，返回 MappingResult（含失败和校验错误）
+     */
+    @SuppressWarnings("unchecked")
+    private MappingResult executeWithRules(Map<String, Object> data, List<YyFieldMappingRule> rules) {
         Map<String, Object> result = new LinkedHashMap<>();
+        List<String> requiredFieldFailures = new ArrayList<>();
+        Map<String, String> validationErrors = new LinkedHashMap<>();
 
         for (YyFieldMappingRule rule : rules) {
             if (rule.getIsEnabled() != null && rule.getIsEnabled() == 0) continue;
@@ -95,6 +228,7 @@ public class YyFieldMappingEngine {
 
             // Step 5: 校验
             if (!validate(cleaned, rule.getValidation())) {
+                validationErrors.put(rule.getStandardField(), "Validation failed: " + rule.getValidation());
                 if (rule.getIsRequired() != null && rule.getIsRequired() == 1) {
                     log.warn("[RuleEngine] 必填字段 {} 校验失败，使用默认值", rule.getStandardField());
                 }
@@ -107,13 +241,29 @@ public class YyFieldMappingEngine {
                 cleaned = castDefault(rule.getDefaultValue(), rule.getTransformType());
             }
 
-            if (cleaned != null) result.put(rule.getStandardField(), cleaned);
-            else if (rule.getIsRequired() != null && rule.getIsRequired() == 1) {
+            if (cleaned != null) {
+                result.put(rule.getStandardField(), cleaned);
+            } else if (rule.getIsRequired() != null && rule.getIsRequired() == 1) {
+                requiredFieldFailures.add(rule.getStandardField());
                 log.debug("[RuleEngine] 必填字段 {} 无值", rule.getStandardField());
             }
         }
 
-        return result;
+        return new MappingResult(result, requiredFieldFailures, validationErrors);
+    }
+
+    /**
+     * 对单个原始 JSON 执行规则（内部用于 executeBatch，也可独立使用）
+     */
+    @SuppressWarnings("unchecked")
+    private MappingResult executeSingle(Object rawJson, Long platformId, String apiCode) {
+        Map<String, Object> data;
+        if (rawJson instanceof String) data = JSON.parseObject((String) rawJson);
+        else if (rawJson instanceof Map) data = (Map<String, Object>) rawJson;
+        else data = new LinkedHashMap<>();
+
+        List<YyFieldMappingRule> rules = loadRules(platformId, apiCode);
+        return executeWithRules(data, rules);
     }
 
     // ---- private helpers ----
@@ -165,9 +315,10 @@ public class YyFieldMappingEngine {
         if (type == null || "none".equals(type)) return s;
 
         return switch (type) {
-            case "number" -> transformNumber(s, configJson);
-            case "date"   -> transformDate(s);
-            case "strip"  -> transformStrip(s, configJson);
+            case "number"  -> transformNumber(s, configJson);
+            case "date"    -> transformDate(s);
+            case "strip"   -> transformStrip(s, configJson);
+            case "boolean" -> transformBoolean(s);
             default -> s;
         };
     }
@@ -237,5 +388,80 @@ public class YyFieldMappingEngine {
             try { return new BigDecimal(def); } catch (Exception e) { return def; }
         }
         return def;
+    }
+
+    /** 布尔转换：是/true/1/yes → 1，其余 → 0 */
+    private Object transformBoolean(String s) {
+        String lower = s.toLowerCase().trim();
+        if ("true".equals(lower) || "1".equals(lower) || "是".equals(lower) || "yes".equals(lower)) {
+            return 1;
+        }
+        return 0;
+    }
+
+    // ---- convertToProduct helpers ----
+
+    /** 需要包装为 JSON 数组的字段 */
+    private static final Set<String> JSON_ARRAY_FIELDS = Set.of(
+        "warehouseStock", "mainImages", "priceStepRules", "activityDetails", "purchaseLimits"
+    );
+
+    /** 如果值是 JSONObject 则包一层 JSONArray 再 toString */
+    private String wrapJsonArray(Object val) {
+        if (val == null) return null;
+        if (val instanceof JSONArray) return val.toString();
+        if (val instanceof JSONObject) return new JSONArray().fluentAdd(val).toString();
+        if (val instanceof List) return JSONArray.of(val).toString();
+        return new JSONArray().fluentAdd(val).toString();
+    }
+
+    private String getString(Map<String, Object> fields, String key) {
+        Object val = fields.get(key);
+        return val != null ? val.toString() : null;
+    }
+
+    private Integer getInt(Map<String, Object> fields, String key) {
+        Object val = fields.get(key);
+        if (val == null) return null;
+        if (val instanceof Integer) return (Integer) val;
+        if (val instanceof Number) return ((Number) val).intValue();
+        try { return Integer.parseInt(val.toString()); } catch (Exception e) { return null; }
+    }
+
+    private Long getLong(Map<String, Object> fields, String key) {
+        Object val = fields.get(key);
+        if (val == null) return null;
+        if (val instanceof Long) return (Long) val;
+        if (val instanceof Number) return ((Number) val).longValue();
+        try { return Long.parseLong(val.toString()); } catch (Exception e) { return null; }
+    }
+
+    private BigDecimal getBigDecimal(Map<String, Object> fields, String key) {
+        Object val = fields.get(key);
+        if (val == null) return null;
+        if (val instanceof BigDecimal) return (BigDecimal) val;
+        try { return new BigDecimal(val.toString()); } catch (Exception e) { return null; }
+    }
+
+    private Date getDate(Map<String, Object> fields, String key) {
+        Object val = fields.get(key);
+        if (val == null) return null;
+        if (val instanceof Date) return (Date) val;
+        if (val instanceof LocalDate) return java.sql.Date.valueOf((LocalDate) val);
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> getStringList(Map<String, Object> fields, String key) {
+        Object val = fields.get(key);
+        if (val == null) return null;
+        if (val instanceof List) {
+            List<String> result = new ArrayList<>();
+            for (Object item : (List<?>) val) {
+                result.add(item != null ? item.toString() : null);
+            }
+            return result;
+        }
+        return null;
     }
 }
