@@ -48,27 +48,41 @@ public class YyFieldMappingEngine {
         boolean isStale() { return System.currentTimeMillis() - loadedAt > 600_000; }
     }
 
-    /** 缓存规则，按 platformId → apiCode → CacheEntry，10 分钟 TTL */
-    private final Map<String, CacheEntry> cache = new LinkedHashMap<>();
+    /** 缓存规则，按 platformId → apiCode → CacheEntry，10 分钟 TTL，线程安全且有界 */
+    private final Map<String, CacheEntry> cache = new LinkedHashMap<>() {
+        // 保留最大 500 条目（内部维护，外部 put 也通过 synchronized 保护）
+    };
 
-    /** 加载平台+API的规则（10 分钟缓存，过期自动重载） */
+    /** 加载平台+API的规则（10 分钟缓存，过期自动重载，线程安全且有界） */
     public List<YyFieldMappingRule> loadRules(Long platformId, String apiCode) {
         if (ruleMapper == null) return Collections.emptyList();
         String key = platformId + "|" + (apiCode != null ? apiCode : "*");
-        CacheEntry entry = cache.get(key);
-        if (entry != null && !entry.isStale()) return entry.rules;
+        synchronized (cache) {
+            CacheEntry entry = cache.get(key);
+            if (entry != null && !entry.isStale()) return entry.rules;
 
-        List<YyFieldMappingRule> rules = new ArrayList<>(ruleMapper.selectByPlatformAndApi(platformId, apiCode));
-        // 合并 API 专属规则 + 平台默认规则（api_code=NULL）
-        List<YyFieldMappingRule> defaults = ruleMapper.selectByPlatformAndApi(platformId, null);
-        Set<String> seen = new HashSet<>();
-        for (YyFieldMappingRule r : rules) seen.add(r.getStandardField());
-        for (YyFieldMappingRule d : defaults) {
-            if (!seen.contains(d.getStandardField())) rules.add(d);
+            List<YyFieldMappingRule> rules = new ArrayList<>(ruleMapper.selectByPlatformAndApi(platformId, apiCode));
+            // 合并 API 专属规则 + 平台默认规则（api_code=NULL）
+            List<YyFieldMappingRule> defaults = ruleMapper.selectByPlatformAndApi(platformId, null);
+            Set<String> seen = new HashSet<>();
+            for (YyFieldMappingRule r : rules) seen.add(r.getStandardField());
+            for (YyFieldMappingRule d : defaults) {
+                if (!seen.contains(d.getStandardField())) rules.add(d);
+            }
+            rules.sort(Comparator.comparing(YyFieldMappingRule::getSortOrder, Comparator.nullsLast(Comparator.naturalOrder())));
+            cache.put(key, new CacheEntry(rules));
+
+            // 有界缓存：超过 500 条目时清除过期条目，仍超出则移除最早条目
+            if (cache.size() > 500) {
+                cache.entrySet().removeIf(e -> e.getValue().isStale());
+            }
+            if (cache.size() > 500) {
+                Iterator<String> it = cache.keySet().iterator();
+                int drop = cache.size() - 500;
+                for (int i = 0; i < drop && it.hasNext(); i++) { it.next(); it.remove(); }
+            }
+            return rules;
         }
-        rules.sort(Comparator.comparing(YyFieldMappingRule::getSortOrder, Comparator.nullsLast(Comparator.naturalOrder())));
-        cache.put(key, new CacheEntry(rules));
-        return rules;
     }
 
     /** 清除缓存 */
@@ -80,13 +94,8 @@ public class YyFieldMappingEngine {
      * @param platformId 平台ID
      * @param apiCode API编码
      */
-    @SuppressWarnings("unchecked")
     public MappingResult execute(Object rawJson, Long platformId, String apiCode) {
-        Map<String, Object> data;
-        if (rawJson instanceof String) data = JSON.parseObject((String) rawJson);
-        else if (rawJson instanceof Map) data = (Map<String, Object>) rawJson;
-        else data = new LinkedHashMap<>();
-
+        Map<String, Object> data = resolveToMap(rawJson);
         List<YyFieldMappingRule> rules = loadRules(platformId, apiCode);
         return executeWithRules(data, rules);
     }
@@ -102,11 +111,7 @@ public class YyFieldMappingEngine {
         List<YyFieldMappingRule> rules = loadRules(platformId, apiCode);
         List<MappingResult> results = new ArrayList<>();
         for (Object item : items) {
-            Map<String, Object> data;
-            if (item instanceof String) data = JSON.parseObject((String) item);
-            else if (item instanceof Map) data = (Map<String, Object>) item;
-            else data = new LinkedHashMap<>();
-            results.add(executeWithRules(data, rules));
+            results.add(executeWithRules(resolveToMap(item), rules));
         }
         return results;
     }
@@ -252,21 +257,17 @@ public class YyFieldMappingEngine {
         return new MappingResult(result, requiredFieldFailures, validationErrors);
     }
 
+    // ---- private helpers ----
+
     /**
-     * 对单个原始 JSON 执行规则（内部用于 executeBatch，也可独立使用）
+     * 将原始 JSON 对象转换为 Map：支持 String（JSON 解析）、Map（直接转换）、其他（返回空 Map）
      */
     @SuppressWarnings("unchecked")
-    private MappingResult executeSingle(Object rawJson, Long platformId, String apiCode) {
-        Map<String, Object> data;
-        if (rawJson instanceof String) data = JSON.parseObject((String) rawJson);
-        else if (rawJson instanceof Map) data = (Map<String, Object>) rawJson;
-        else data = new LinkedHashMap<>();
-
-        List<YyFieldMappingRule> rules = loadRules(platformId, apiCode);
-        return executeWithRules(data, rules);
+    private Map<String, Object> resolveToMap(Object rawJson) {
+        if (rawJson instanceof String) return JSON.parseObject((String) rawJson);
+        if (rawJson instanceof Map) return (Map<String, Object>) rawJson;
+        return new LinkedHashMap<>();
     }
-
-    // ---- private helpers ----
 
     /** 从 JSON 嵌套路径中提取值，支持备选路径列表 */
     private Object extractFromPaths(Map<String, Object> data, String sourcePathsJson) {
@@ -292,6 +293,7 @@ public class YyFieldMappingEngine {
             // 处理数组索引 data.products[0]
             Matcher m = Pattern.compile("(\\w+)\\[(\\d+)\\]").matcher(seg);
             if (m.matches()) {
+                if (!(current instanceof Map)) return null;
                 Map<String, Object> map = (Map<String, Object>) current;
                 Object arr = map.get(m.group(1));
                 if (arr instanceof List) {
@@ -324,8 +326,9 @@ public class YyFieldMappingEngine {
     }
 
     private Object transformNumber(String s, String configJson) {
+        JSONObject cfg = null;
         if (configJson != null) {
-            JSONObject cfg = JSON.parseObject(configJson);
+            cfg = JSON.parseObject(configJson);
             String strip = cfg.getString("strip");
             if (strip != null) for (char c : strip.toCharArray()) s = s.replace(String.valueOf(c), "");
         }
@@ -334,8 +337,7 @@ public class YyFieldMappingEngine {
         if (s.isEmpty()) return null;
         try {
             BigDecimal num = new BigDecimal(s);
-            if (configJson != null) {
-                JSONObject cfg = JSON.parseObject(configJson);
+            if (cfg != null) {
                 int scale = cfg.getIntValue("scale", -1);
                 if (scale >= 0) num = num.setScale(scale, RoundingMode.HALF_UP);
             }
@@ -366,8 +368,10 @@ public class YyFieldMappingEngine {
         JSONObject v = JSON.parseObject(validationJson);
 
         if (val instanceof BigDecimal num) {
-            if (v.containsKey("min") && num.compareTo(v.getBigDecimal("min")) < 0) return false;
-            if (v.containsKey("max") && num.compareTo(v.getBigDecimal("max")) > 0) return false;
+            BigDecimal min = v.getBigDecimal("min");
+            BigDecimal max = v.getBigDecimal("max");
+            if (min != null && num.compareTo(min) < 0) return false;
+            if (max != null && num.compareTo(max) > 0) return false;
         }
 
         if (v.containsKey("pattern")) {
