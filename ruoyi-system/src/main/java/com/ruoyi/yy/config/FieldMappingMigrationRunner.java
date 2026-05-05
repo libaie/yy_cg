@@ -80,6 +80,11 @@ public class FieldMappingMigrationRunner implements ApplicationRunner {
 
         log.info("成功转换 {} 条规则", rules.size());
 
+        if (rules.isEmpty()) {
+            log.info("没有有效规则需要迁移，迁移结束");
+            return;
+        }
+
         // 3. 按 platformId 分组
         Map<Long, List<YyFieldMappingRule>> groupedByPlatform = new HashMap<>();
         for (YyFieldMappingRule rule : rules) {

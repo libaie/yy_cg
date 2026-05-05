@@ -6,10 +6,12 @@ import com.alibaba.fastjson2.JSONObject;
 import com.ruoyi.yy.domain.YyPlatform;
 import com.ruoyi.yy.domain.YyProductFusionGroup;
 import com.ruoyi.yy.domain.YyProductSnapshot;
+import com.ruoyi.yy.domain.YyFusionResult;
 import com.ruoyi.yy.domain.YyStandardProduct;
 import com.ruoyi.yy.dto.MappedProductDTO;
 import com.ruoyi.yy.dto.YyDataIngestDTO;
 import com.ruoyi.yy.model.MappingResult;
+import com.ruoyi.yy.service.IDataFusionService;
 import com.ruoyi.yy.service.IDataIngestService;
 import com.ruoyi.yy.service.IYyPlatformDecryptService;
 import com.ruoyi.yy.service.IYyPlatformDegradationService;
@@ -24,7 +26,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -49,7 +51,7 @@ import java.util.Set;
 @Service("dataIngestService")
 @Primary
 @ConditionalOnProperty(name = "app.data-ingest.legacy-mode", havingValue = "false", matchIfMissing = true)
-public class DataIngestOrchestrator implements IDataIngestService {
+public class DataIngestOrchestrator implements IDataFusionService, IDataIngestService {
 
     private static final Logger log = LoggerFactory.getLogger(DataIngestOrchestrator.class);
 
@@ -73,6 +75,9 @@ public class DataIngestOrchestrator implements IDataIngestService {
 
     @Autowired
     private IYyPlatformDegradationService degradationService;
+
+    @Autowired
+    private YyFusionEngineImpl fusionEngine;
 
     // ======================== ingest ========================
 
@@ -123,10 +128,11 @@ public class DataIngestOrchestrator implements IDataIngestService {
         // ====== Step 4: 字段映射（V2 引擎批量执行） ======
         List<MappingResult> results = mappingEngine.executeBatch(items, platform.getPId(), apiCode);
 
-        // ====== Step 5: 融合 + 快照 + 价格历史 ======
+        // ====== Step 5: 融合分组 + 构建快照列表 ======
         Set<Long> touchedGroupIds = new HashSet<>();
         int totalMapped = 0;
         int newGroups = 0;
+        List<YyProductSnapshot> snapshots = new ArrayList<>();
 
         for (MappingResult result : results) {
             if (result.hasRequiredFieldFailures()) {
@@ -141,9 +147,11 @@ public class DataIngestOrchestrator implements IDataIngestService {
             // Fix 2: propagate collectedAt from ingest DTO into product DTO
             if (dto.getCollectedAt() != null && !dto.getCollectedAt().isBlank()) {
                 try {
-                    productDto.setCollectedAt(Date.from(Instant.parse(dto.getCollectedAt())));
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    productDto.setCollectedAt(sdf.parse(dto.getCollectedAt()));
                 } catch (Exception e) {
-                    log.warn("Failed to parse collectedAt '{}' for platform={}", dto.getCollectedAt(), platformCode, e);
+                    log.warn("Failed to parse collectedAt '{}' for platform={}, falling back to now", dto.getCollectedAt(), platformCode, e);
+                    productDto.setCollectedAt(new Date());
                 }
             }
 
@@ -162,17 +170,30 @@ public class DataIngestOrchestrator implements IDataIngestService {
                     }
                 }
 
-                // 5c: 构建快照
+                // 5c: 构建快照并加入列表
                 YyProductSnapshot snapshot = buildSnapshot(productDto, platformCode, apiCode);
-
-                // 5d: 保存快照
-                snapshotService.saveSnapshot(snapshot);
-
-                // 5e: 双写价格历史
-                snapshotService.appendPriceHistory(snapshot);
+                snapshots.add(snapshot);
 
                 totalMapped++;
             }
+        }
+
+        // ====== Step 5d: 批量保存快照（一次 INSERT） ======
+        if (!snapshots.isEmpty()) {
+            snapshotService.saveBatch(snapshots);
+        }
+
+        // ====== Step 5e: 融合匹配 + 价格历史（每个快照执行） ======
+        for (YyProductSnapshot snapshot : snapshots) {
+            // 融合引擎匹配：drug matching
+            YyFusionResult fusionResult = fusionEngine.fuse(snapshot);
+            if (fusionResult.isMatched()) {
+                snapshot.setDrugId(fusionResult.getDrugId());
+                snapshot.setFusionConfidence(fusionResult.getConfidence());
+            }
+
+            // 双写价格历史
+            snapshotService.appendPriceHistory(snapshot);
         }
 
         // ====== Step 6: 更新所有受影响的融合分组聚合 ======

@@ -6,6 +6,7 @@ import com.ruoyi.yy.service.IYyProductSnapshotService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -35,7 +36,11 @@ public class YyProductSnapshotServiceImpl implements IYyProductSnapshotService {
     @Override
     public void saveBatch(List<YyProductSnapshot> snapshots) {
         if (snapshots != null && !snapshots.isEmpty()) {
-            productSnapshotMapper.batchInsertYyProductSnapshot(snapshots);
+            try {
+                productSnapshotMapper.batchInsertYyProductSnapshot(snapshots);
+            } catch (DuplicateKeyException e) {
+                log.warn("批量插入快照时出现重复键，已跳过 (count={})", snapshots.size(), e);
+            }
         }
     }
 
