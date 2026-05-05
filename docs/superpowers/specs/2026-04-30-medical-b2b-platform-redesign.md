@@ -1,10 +1,9 @@
 # 医药B2B采购比价平台 - 架构重构设计文档
 
 > 日期: 2026-04-30
-> 状态: 全面审查通过 (/autoplan 4-phase review)
-> 范围: yy模块架构重构 + AI能力层（缩减至5个核心模块）
-> 审查结果: 5 P0（3已修复）, 10 P1（1已修复）, 7 P2/P3 — 详见审查报告
-> 二次审查: /plan-eng-review 2026-04-29 — 架构/代码质量/测试/性能 4维审查
+> 状态: 设计调整完成（统一Yy前缀命名规范）
+> 范围: yy模块架构重构 + AI能力层（5个核心模块）
+> 命名规范: 所有医药业务类统一使用Yy前缀，与RuoYi框架的Sys前缀形成视觉分离
 
 ---
 
@@ -32,8 +31,9 @@
 3. 平台适配器模式，新平台接入变为配置任务
 4. Chrome扩展模块化，支持动态加载平台配置
 5. 医药知识库：自建 + NMPA/医保目录/药智网等外部数据源，RAG架构
-6. AI能力层（Phase 1: 5个核心模块）：AiMatchEngine（药品匹配）、AiAdvisor（比价顾问）、AiDataCleaner（数据清洗）、AiSearchEngine（智能搜索）、AiEvaluator（药品评测）
+6. AI能力层（Phase 1: 5个核心模块）：YyAiMatchEngine（药品匹配）、YyAiAdvisor（比价顾问）、YyAiDataCleaner（数据清洗）、YyAiSearchEngine（智能搜索）、YyAiEvaluator（药品评测）
 7. 使用通义千问/百炼作为LLM服务（需基准测试对比DeepSeek）
+8. **统一命名规范**：所有医药业务类使用Yy前缀，与RuoYi框架的Sys前缀形成视觉分离
 
 > **审查修订**: 原计划20个AI模块缩减至5个核心模块。剩余15个模块待Phase 1核心模块采用率验证后再实施。
 
@@ -56,15 +56,15 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                    业务层 (ruoyi-system/yy)                       │
 │  ┌─ platform ──────┐  ┌─ product ─────────┐  ┌─ fusion ──────┐ │
-│  │ PlatformAdapter  │  │ YyDrugMaster      │  │ FusionEngine  │ │
-│  │ AdapterRegistry  │  │ YyProductSnapshot │  │ MatchStrategy │ │
+│  │ YyPlatformAdapter│  │ YyDrugMaster      │  │ YyFusionEngine│ │
+│  │ YyAdapterRegistry│  │ YyProductSnapshot │  │ YyMatchStrategy│ │
 │  └──────────────────┘  └───────────────────┘  └───────────────┘ │
 │  ┌─ price ─────────┐  ┌─ user ────────────┐  ┌─ ai ──────────┐ │
-│  │ PriceComparison  │  │ YyUser            │  │ AiGateway     │ │
-│  │ SalesForecast    │  │ YyMemberTier      │  │ AiMatchEngine │ │
+│  │ YyPriceComparison│  │ YyUser            │  │ YyAiGateway   │ │
+│  │ YySalesForecast  │  │ YyMemberTier      │  │ YyAiMatchEngine│ │
 │  └──────────────────┘  └───────────────────┘  └───────────────┘ │
 │  ┌─ collection ────┐  ┌─ referral ────────┐  ┌─ common ──────┐ │
-│  │ IngestPipeline   │  │ ReferralConfig    │  │ VOs/Constants │ │
+│  │ YyDataIngestPipe│  │ YyReferralConfig  │  │ VOs/Constants │ │
 │  └──────────────────┘  └───────────────────┘  └───────────────┘ │
 └─────────────────────────────────────────────────────────────────┘
 ┌─────────────────────────────────────────────────────────────────┐
@@ -76,14 +76,22 @@
 
 | 子域 | 职责 | 核心实体/类 |
 |------|------|-------------|
-| platform | 平台管理、适配器、Token | YyPlatform, YyPlatformApi, PlatformAdapter, AdapterRegistry |
+| platform | 平台管理、适配器、Token | YyPlatform, YyPlatformApi, YyPlatformAdapter, YyPlatformAdapterRegistry |
 | product | 药品主数据、商品快照、字段映射 | YyDrugMaster, YyProductSnapshot, YyFieldMapping, YyDrugAlias |
-| fusion | 多信号融合匹配、审核队列 | YyProductFusionGroup, FusionEngine, MatchStrategy*, YyFusionReview |
-| price | 比价、价格趋势、平台活动、C端平台分析 | YyPriceComparison, YyPlatformActivity, CPlatformData |
+| fusion | 多信号融合匹配、审核队列 | YyProductFusionGroup, YyFusionEngine, YyMatchStrategy*, YyFusionReview |
+| price | 比价、价格趋势、平台活动、C端平台分析 | YyPriceComparison, YyPlatformActivity, YyCPlatformData |
 | user | 用户、会员、平台绑定 | YyUser, YyMemberTier, YyUserPlatform |
-| collection | 数据采集入库管道 | DataIngestPipeline |
+| collection | 数据采集入库管道 | YyDataIngestPipeline |
 | referral | 推荐奖励 | YyReferralConfig, YyReferralReward |
-| ai | AI能力层（20个AI模块） | AiGateway, AiMatchEngine, AiAdvisor, AiEvaluator, AiSearchEngine, AiPurchasePlanner, AiComplianceChecker, AiMarketIntelligence, AiCrossSell, AiImageSearch, AiPricingAdvisor, AiInventoryOptimizer, AiChatAssistant, AiOperationAssistant, AiDataCleaner, AiReportEngine, AiNegotiationAdvisor, AiAnomalyDetector, AiUserProfile |
+| ai | AI能力层（5个核心模块） | YyAiGateway, YyAiMatchEngine, YyAiAdvisor, YyAiEvaluator, YyAiSearchEngine, YyAiDataCleaner |
+
+### 2.3 命名规范
+
+| 前缀 | 用途 | 示例 |
+|------|------|------|
+| Yy | 医药业务域类 | YyPlatform, YyDrugMaster, YyUser |
+| YyAi | AI能力层类 | YyAiGateway, YyAiMatchEngine, YyAiAdvisor |
+| Sys | RuoYi框架类 | SysUser, SysRole, SysMenu |
 
 ---
 
@@ -107,7 +115,7 @@ com.ruoyi.yy/
 com.ruoyi.yy/
   platform/                    # 平台管理域
     domain/                    # YyPlatform, YyPlatformApi, YyPlatformKeyVault
-    adapter/                   # PlatformAdapter接口 + ConfigurablePlatformAdapter
+    adapter/                   # YyPlatformAdapter接口 + YyConfigurablePlatformAdapter
     mapper/
     service/
     service/impl/
@@ -118,14 +126,14 @@ com.ruoyi.yy/
     service/impl/
   fusion/                      # 数据融合域
     domain/                    # YyProductFusionGroup, YyFusionReview
-    engine/                    # FusionEngine, MatchStrategy接口, 4个实现
+    engine/                    # YyFusionEngine, YyMatchStrategy接口, 4个实现
     mapper/
     service/
     service/impl/
   price/                       # 比价分析域
     domain/                    # YyPriceComparison, YyPlatformActivity
-    dto/                       # PriceComparisonDTO
-    vo/                        # PriceComparisonVO, PriceTrendVO等
+    dto/                       # YyPriceComparisonDTO
+    vo/                        # YyPriceComparisonVO, YyPriceTrendVO等
     mapper/
     service/
     service/impl/
@@ -143,27 +151,14 @@ com.ruoyi.yy/
     mapper/
     service/
     service/impl/
-  ai/                          # AI能力域（20个AI模块）
-    gateway/                   # AiGateway (统一AI调用网关)
-    match/                     # AiMatchEngine (AI药品匹配)
-    advisor/                   # AiAdvisor (AI比价顾问)
-    evaluator/                 # AiEvaluator (AI药品评测)
-    search/                    # AiSearchEngine (AI智能搜索)
-    purchase/                  # AiPurchasePlanner (AI采购计划)
-    compliance/                # AiComplianceChecker (AI合规检查)
-    intelligence/              # AiMarketIntelligence (AI市场情报)
-    crosssell/                 # AiCrossSell (AI关联推荐)
-    imagesearch/               # AiImageSearch (AI图片识别)
-    pricing/                   # AiPricingAdvisor (AI定价建议)
-    inventory/                 # AiInventoryOptimizer (AI库存优化)
-    chat/                      # AiChatAssistant (AI智能客服)
-    operation/                 # AiOperationAssistant (AI自动化运营)
-    cleaner/                   # AiDataCleaner (AI数据清洗)
-    report/                    # AiReportEngine (AI自然语言报表)
-    negotiation/               # AiNegotiationAdvisor (AI谈判助手)
-    anomaly/                   # AiAnomalyDetector (AI异常检测)
-    profile/                   # AiUserProfile (AI用户画像)
-    prompt/                    # PromptTemplate (Prompt模板管理)
+  ai/                          # AI能力域（5个核心模块）
+    gateway/                   # YyAiGateway (统一AI调用网关)
+    match/                     # YyAiMatchEngine (AI药品匹配)
+    advisor/                   # YyAiAdvisor (AI比价顾问)
+    evaluator/                 # YyAiEvaluator (AI药品评测)
+    search/                    # YyAiSearchEngine (AI智能搜索)
+    cleaner/                   # YyAiDataCleaner (AI数据清洗)
+    prompt/                    # YyAiPromptTemplate (Prompt模板管理)
     config/                    # AI配置
   common/                      # 共享组件
     vo/                        # 共享VO
@@ -312,13 +307,13 @@ AI匹配:
   < 0.80          → 进入 yy_fusion_review 人工审核队列
 ```
 
-### 4.3 MatchStrategy接口
+### 4.3 YyMatchStrategy接口
 
 ```java
-public interface MatchStrategy {
+public interface YyMatchStrategy {
     String getName();
     int getPriority();  // 越高越先执行
-    MatchResult match(YyProductSnapshot snapshot, List<YyDrugMaster> candidates);
+    YyMatchResult match(YyProductSnapshot snapshot, List<YyDrugMaster> candidates);
 }
 ```
 
@@ -326,18 +321,18 @@ public interface MatchStrategy {
 
 | 实现 | 优先级 | 匹配方式 | 置信度 |
 |------|--------|----------|--------|
-| BarcodeMatchStrategy | 100 | 69码精确匹配 | 1.0 |
-| ApprovalNumberMatchStrategy | 90 | 批准文号精确匹配 | 0.98 |
-| FuzzyMatchStrategy | 50 | 归一化字符串模糊匹配 | 0.7-0.95 |
-| AiMatchStrategy | 10 | LLM语义匹配（兜底） | 0.5-0.99 |
+| YyBarcodeMatchStrategy | 100 | 69码精确匹配 | 1.0 |
+| YyApprovalNumberMatchStrategy | 90 | 批准文号精确匹配 | 0.98 |
+| YyFuzzyMatchStrategy | 50 | 归一化字符串模糊匹配 | 0.7-0.95 |
+| YyAiMatchStrategy | 10 | LLM语义匹配（兜底） | 0.5-0.99 |
 
-### 4.4 FusionEngine
+### 4.4 YyFusionEngine
 
 ```java
 @Service
-public class FusionEngine {
+public class YyFusionEngine {
     @Autowired
-    private List<MatchStrategy> strategies;  // Spring自动注入所有实现
+    private List<YyMatchStrategy> strategies;  // Spring自动注入所有实现
     @Autowired
     private YyDrugMasterMapper drugMasterMapper;
     @Autowired
@@ -345,7 +340,7 @@ public class FusionEngine {
     @Autowired
     private YyFusionReviewMapper reviewMapper;
 
-    public FusionResult fuse(YyProductSnapshot snapshot) {
+    public YyFusionResult fuse(YyProductSnapshot snapshot) {
         // 1. 检查alias缓存
         // 2. 获取候选集
         // 3. 按优先级执行策略
@@ -478,10 +473,10 @@ FROM yy_standard_product;
 
 ## 6. 平台适配器模式
 
-### 6.1 PlatformAdapter接口
+### 6.1 YyPlatformAdapter接口
 
 ```java
-public interface PlatformAdapter {
+public interface YyPlatformAdapter {
     String getPlatformCode();
     String decrypt(String encryptedData, YyPlatformKeyVault vault, int encryptType);
     JSONArray extractProductArray(String decryptedJson, String entryPath);
@@ -492,9 +487,9 @@ public interface PlatformAdapter {
 
 ### 6.2 实现策略
 
-- `ConfigurablePlatformAdapter` — 通用实现，行为从yy_platform_api + yy_field_mapping表配置驱动
+- `YyConfigurablePlatformAdapter` — 通用实现，行为从yy_platform_api + yy_field_mapping表配置驱动
 - 特殊平台（如药师帮签名）可继承重写特定方法
-- `PlatformAdapterRegistry` — 启动时加载所有活跃平台适配器，运行时通过platformCode获取
+- `YyPlatformAdapterRegistry` — 启动时加载所有活跃平台适配器，运行时通过platformCode获取
 
 ### 6.3 字段映射增强
 
@@ -567,7 +562,7 @@ yy_field_mapping表新增字段:
 
 ## 8. 医药知识库
 
-### 8.0.1 知识库架构
+### 8.1 知识库架构
 
 采用RAG（检索增强生成）架构，为所有AI模块提供知识支撑：
 
@@ -597,7 +592,7 @@ yy_field_mapping表新增字段:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 8.0.2 数据获取策略
+### 8.2 数据获取策略
 
 **第1层：免费公开数据（立即可用）**
 - NMPA国家药监局药品数据库 → 批准文号、厂家、规格、剂型
@@ -621,7 +616,7 @@ yy_field_mapping表新增字段:
 - 人工药剂师审核校正
 - 用户反馈纠错
 
-### 8.0.3 知识库数据表
+### 8.3 知识库数据表
 
 **yy_drug_monograph** — 药品专论知识库:
 
@@ -675,7 +670,7 @@ CREATE TABLE yy_compliance_data (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='合规数据表';
 ```
 
-### 8.0.4 知识库初始化流程
+### 8.4 知识库初始化流程
 
 1. **NMPA数据导入**: 爬取NMPA药品数据库，批量导入yy_compliance_data
 2. **医保目录导入**: 下载国家医保目录Excel，导入yy_drug_master.medicare_type
@@ -687,13 +682,13 @@ CREATE TABLE yy_compliance_data (
 
 ## 9. AI能力层
 
-### 8.1 AI Gateway（统一网关）
+### 9.1 YyAiGateway（统一网关）
 
 ```java
 @Service
-public class AiGateway {
+public class YyAiGateway {
     // 统一AI调用入口
-    public AiResponse call(AiRequest request);
+    public YyAiResponse call(YyAiRequest request);
 
     // 模型路由：简单任务用规则引擎，复杂任务调LLM
     // Prompt模板管理：存入数据库，支持运营调整
@@ -709,21 +704,21 @@ public class AiGateway {
 - 药品匹配结果持久化到yy_drug_alias表
 - Prompt模板存入数据库，支持运营人员调整
 
-### 8.2 AI药品匹配引擎
+### 9.2 YyAiMatchEngine（AI药品匹配）
 
-增强FusionEngine的第④步匹配策略:
+增强YyFusionEngine的第④步匹配策略:
 
 ```java
 @Service
-public class AiMatchStrategy implements MatchStrategy {
+public class YyAiMatchStrategy implements YyMatchStrategy {
     @Override
     public int getPriority() { return 10; }  // 最低优先级，作为兜底
 
     @Override
-    public MatchResult match(YyProductSnapshot snapshot, List<YyDrugMaster> candidates) {
+    public YyMatchResult match(YyProductSnapshot snapshot, List<YyDrugMaster> candidates) {
         // 构建prompt：将商品数据和候选列表发给LLM
         // 要求LLM判断是否为同一药品，返回置信度和理由
-        // 解析LLM响应，返回MatchResult
+        // 解析LLM响应，返回YyMatchResult
     }
 }
 ```
@@ -747,7 +742,7 @@ public class AiMatchStrategy implements MatchStrategy {
 {"matched": true/false, "drug_id": "xxx", "confidence": 0.95, "reason": "xxx"}
 ```
 
-### 8.3 AI比价顾问
+### 9.3 YyAiAdvisor（AI比价顾问）
 
 **场景**: 用户搜索某药品，返回多平台价格，AI给出最优采购建议。
 
@@ -761,8 +756,8 @@ public class AiMatchStrategy implements MatchStrategy {
 
 ```java
 @Service
-public class AiAdvisor {
-    public PurchaseAdvice getAdvice(String userId, List<PriceComparisonVO> prices) {
+public class YyAiAdvisor {
+    public YyPurchaseAdvice getAdvice(String userId, List<YyPriceComparisonVO> prices) {
         // 1. 计算每个平台的综合到手价
         // 2. 获取用户历史采购模式
         // 3. 获取当前活动信息
@@ -772,7 +767,7 @@ public class AiAdvisor {
 }
 ```
 
-### 8.4 AI药品评测
+### 9.4 YyAiEvaluator（AI药品评测）
 
 **场景**: 药店采购员需要了解药品质量、供应商可靠性。
 
@@ -784,8 +779,8 @@ public class AiAdvisor {
 
 ```java
 @Service
-public class AiEvaluator {
-    public ProductEvaluation evaluate(Long drugId, String platformCode) {
+public class YyAiEvaluator {
+    public YyProductEvaluation evaluate(Long drugId, String platformCode) {
         // 1. 收集药品在各平台的数据
         // 2. 收集供应商历史表现数据
         // 3. 收集C端市场数据
@@ -795,7 +790,7 @@ public class AiEvaluator {
 }
 ```
 
-### 8.5 AI智能搜索
+### 9.5 YyAiSearchEngine（AI智能搜索）
 
 **场景**: 用户输入模糊查询（如"感冒药"、"降压"），需要理解意图。
 
@@ -806,8 +801,8 @@ public class AiEvaluator {
 
 ```java
 @Service
-public class AiSearchEngine {
-    public SearchIntent understandQuery(String query) {
+public class YyAiSearchEngine {
+    public YySearchIntent understandQuery(String query) {
         // 1. 调用LLM理解搜索意图
         // 2. 扩展为标准通用名列表
         // 3. 返回结构化搜索意图
@@ -815,7 +810,29 @@ public class AiSearchEngine {
 }
 ```
 
-### 8.6 Prompt模板管理
+### 9.6 YyAiDataCleaner（AI数据清洗）
+
+**场景**: 历史采集数据中存在大量脏数据（错别字、格式不一致、缺失值）。
+
+**AI能力**:
+- 批量标准化厂家名（"同仁堂" vs "北京同仁堂股份有限公司"）
+- 规格格式统一（"0.25g×12片" vs "0.25g*12s"）
+- 识别并修复数据不一致（同一药品不同平台的通用名不同）
+- 缺失字段智能填充（基于已有字段推断缺失的69码、批准文号等）
+
+```java
+@Service
+public class YyAiDataCleaner {
+    public YyCleanResult cleanProductData(List<YyProductSnapshot> snapshots) {
+        // 1. 批量发送给LLM进行标准化
+        // 2. 对比知识库中的标准数据
+        // 3. 生成清洗建议
+        // 4. 自动或人工确认后执行清洗
+    }
+}
+```
+
+### 9.7 YyAiPromptTemplate管理
 
 Prompt模板存入数据库，支持运营人员调整:
 
@@ -824,7 +841,7 @@ CREATE TABLE yy_ai_prompt_template (
     id BIGINT NOT NULL AUTO_INCREMENT,
     template_code VARCHAR(50) NOT NULL COMMENT '模板编码',
     template_name VARCHAR(100) NOT NULL COMMENT '模板名称',
-    scene VARCHAR(50) NOT NULL COMMENT '场景: match/advisor/evaluator/search/purchase/compliance/intelligence/crosssell/imagesearch/pricing/inventory/chat',
+    scene VARCHAR(50) NOT NULL COMMENT '场景: match/advisor/evaluator/search/cleaner',
     system_prompt TEXT NOT NULL COMMENT '系统提示词',
     user_prompt_template TEXT NOT NULL COMMENT '用户提示词模板(含占位符)',
     model VARCHAR(50) DEFAULT 'qwen-turbo' COMMENT '使用的模型',
@@ -838,431 +855,18 @@ CREATE TABLE yy_ai_prompt_template (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI Prompt模板表';
 ```
 
-### 8.7 AI采购计划自动生成
-
-**场景**: 药店每周/每月需要制定采购计划，目前依赖人工经验。
-
-**AI能力**:
-- 基于历史销售数据 + 季节性因素（感冒药冬季需求高、防暑药夏季需求高）
-- 结合当前库存水位和安全库存阈值
-- 考虑药品效期，避免过量采购导致过期损耗
-- 自动生成每周/每月采购清单，包含建议采购量和最优平台
-- 支持人工调整后重新计算
-
-```java
-@Service
-public class AiPurchasePlanner {
-    public PurchasePlan generatePlan(String pharmacyId, String period) {
-        // 1. 获取历史销售数据（近3-6个月）
-        // 2. 分析季节性趋势和品类关联
-        // 3. 获取当前库存和效期信息
-        // 4. 调用LLM生成采购计划
-        // 5. 返回结构化采购清单 + 自然语言说明
-    }
-}
-```
-
-**新增数据表**:
-```sql
-CREATE TABLE yy_purchase_plan (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    user_id BIGINT NOT NULL COMMENT '用户ID',
-    plan_period VARCHAR(20) NOT NULL COMMENT '计划周期(2026-W18/2026-05)',
-    plan_data JSON NOT NULL COMMENT '采购计划明细JSON',
-    ai_summary TEXT COMMENT 'AI生成的采购建议摘要',
-    status VARCHAR(20) DEFAULT 'draft' COMMENT 'draft/confirmed/completed',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    KEY idx_user_period (user_id, plan_period)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI采购计划表';
-```
-
-### 8.8 AI合规检查
-
-**场景**: 医药行业监管严格，药店需要确保采购的药品和供应商资质合规。
-
-**AI能力**:
-- 批准文号真伪验证（对接国家药监局数据库）
-- 供应商GSP/GMP资质有效期检查
-- 追溯码状态异常预警
-- 医保目录变动影响分析（某药品被移出医保 → 影响采购策略）
-- 处方药/非处方药分类合规检查
-
-```java
-@Service
-public class AiComplianceChecker {
-    public ComplianceReport check(Long drugId, String platformCode) {
-        // 1. 验证批准文号格式和有效性
-        // 2. 检查供应商资质
-        // 3. 检查追溯码状态
-        // 4. 检查医保分类
-        // 5. 生成合规报告
-    }
-}
-```
-
-**新增数据表**:
-```sql
-CREATE TABLE yy_compliance_check (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    drug_id BIGINT COMMENT '药品ID',
-    platform_code VARCHAR(50) COMMENT '平台编码',
-    check_type VARCHAR(50) NOT NULL COMMENT '检查类型: approval/supplier/traceability/medicalcare',
-    check_result VARCHAR(20) NOT NULL COMMENT 'pass/warning/fail',
-    detail JSON COMMENT '检查详情',
-    checked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    KEY idx_drug (drug_id),
-    KEY idx_result (check_result)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI合规检查记录表';
-```
-
-### 8.9 AI市场情报
-
-**场景**: 医药行业政策变动频繁（集采、医保谈判），价格波动大，需要及时掌握市场动态。
-
-**AI能力**:
-- 行业政策监控：集采扩面、医保谈判结果、GSP新规
-- 价格趋势分析：基于历史比价数据，预测药品价格走势
-- 平台促销规律分析：各平台的促销周期、力度、品类偏好
-- 新药上市提醒：同品类新药上市可能影响现有采购策略
-- 竞品动态：同区域药店的采购行为分析
-
-```java
-@Service
-public class AiMarketIntelligence {
-    public MarketReport generateReport(String category, String region) {
-        // 1. 收集政策新闻（可通过爬虫或API）
-        // 2. 分析价格趋势数据
-        // 3. 分析平台促销历史
-        // 4. 调用LLM生成市场情报报告
-        // 5. 返回结构化报告 + 关键提醒
-    }
-}
-```
-
-### 8.10 AI药品关联推荐
-
-**场景**: 药店采购时往往只关注急需药品，遗漏了关联品类的补充。
-
-**AI能力**:
-- 基于药店采购数据的关联分析（Apriori/FP-Growth算法）
-- 季节性组合推荐（流感季：抗病毒+退烧+维生素C套餐）
-- 疾病场景套餐（高血压：降压药+血压计+低钠盐）
-- 帮助药店发现遗漏的热销品类，提升客单价
-
-```java
-@Service
-public class AiCrossSell {
-    public List<CrossSellRecommendation> recommend(String userId, List<Long> cartDrugIds) {
-        // 1. 获取用户购物车/历史采购
-        // 2. 基于关联规则挖掘推荐商品
-        // 3. 结合季节性和地区因素
-        // 4. 调用LLM生成推荐理由
-        // 5. 返回推荐列表
-    }
-}
-```
-
-### 8.11 AI图片识别购药
-
-**场景**: 药店店员看到竞品或顾客带来的药品，想快速找到采购渠道和最低价。
-
-**AI能力**:
-- 拍照识别药品包装（通用名、厂家、规格）
-- 扫描药品条码（69码）直接匹配
-- 识别结果自动搜索全网最低价
-- 支持模糊拍照（通过药品外观特征识别）
-
-```java
-@Service
-public class AiImageSearch {
-    public ImageSearchResult search(byte[] imageData) {
-        // 1. 调用通义千问VL（视觉语言模型）识别药品信息
-        // 2. 提取通用名、厂家、规格、69码
-        // 3. 通过FusionEngine匹配药品主数据
-        // 4. 搜索各平台价格
-        // 5. 返回识别结果 + 比价结果
-    }
-}
-```
-
-**技术方案**: 使用通义千问VL（视觉理解模型）进行药品包装识别，结合69码条码扫描。
-
-### 8.12 AI定价建议
-
-**场景**: 药店采购后需要制定零售价，目前主要靠经验。
-
-**AI能力**:
-- 分析同区域同品类药品的零售价分布
-- 基于采购成本 + 目标毛利率，建议最优零售定价
-- 医保支付价与市场价的差异分析
-- 特殊药品（集采药品）的定价约束提醒
-- 动态定价建议：临近效期的药品降价促销
-
-```java
-@Service
-public class AiPricingAdvisor {
-    public PricingAdvice getAdvice(Long drugId, BigDecimal purchasePrice, String region) {
-        // 1. 获取该药品的市场零售价分布
-        // 2. 获取医保支付价
-        // 3. 计算毛利率区间
-        // 4. 调用LLM生成定价建议
-        // 5. 返回建议零售价 + 理由
-    }
-}
-```
-
-### 8.13 AI库存优化
-
-**场景**: 药店库存管理直接影响资金周转和药品效期损耗。
-
-**AI能力**:
-- 基于销售预测 + 补货周期 + 资金约束，优化库存周转率
-- 效期预警：临近过期的药品优先推荐促销或调拨
-- 缺货风险预测：哪些药品可能断货，建议提前备货
-- 滞销品识别：长期不动销的药品建议退换或促销
-- 安全库存动态调整：根据销售波动自动调整安全库存阈值
-
-```java
-@Service
-public class AiInventoryOptimizer {
-    public InventoryAdvice optimize(String userId) {
-        // 1. 获取当前库存数据
-        // 2. 分析销售速度和波动
-        // 3. 检查效期分布
-        // 4. 调用LLM生成优化建议
-        // 5. 返回：需补货清单、需促销清单、需退货清单
-    }
-}
-```
-
-**新增数据表**:
-```sql
-CREATE TABLE yy_inventory_alert (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    user_id BIGINT NOT NULL COMMENT '用户ID',
-    drug_id BIGINT NOT NULL COMMENT '药品ID',
-    alert_type VARCHAR(20) NOT NULL COMMENT '预警类型: low_stock/expiry_risk/slow_moving/overstock',
-    severity VARCHAR(10) NOT NULL COMMENT '严重程度: low/medium/high',
-    current_quantity INT COMMENT '当前库存',
-    suggested_action VARCHAR(50) COMMENT '建议操作: reorder/promote/return/adjust',
-    ai_detail TEXT COMMENT 'AI分析详情',
-    status VARCHAR(20) DEFAULT 'active' COMMENT 'active/resolved/ignored',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    KEY idx_user_type (user_id, alert_type),
-    KEY idx_severity (severity)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI库存预警表';
-```
-
-### 8.14 AI智能客服/采购助手
-
-**场景**: 药店采购员在使用平台时有各种问题，需要即时解答。
-
-**AI能力**:
-- 对话式采购："帮我找一下最便宜的阿莫西林，要现货的"
-- 自动回答药品相关问题（用法、适应症、禁忌、相互作用）
-- 采购异常处理（价格异常波动提醒、订单问题自动排查）
-- 平台功能引导（如何绑定账号、如何使用比价功能）
-- 多轮对话支持，记住上下文
-
-```java
-@Service
-public class AiChatAssistant {
-    public ChatResponse chat(String userId, String message, String sessionId) {
-        // 1. 获取对话历史
-        // 2. 判断意图（采购/咨询/投诉/引导）
-        // 3. 根据意图调用对应AI模块
-        // 4. 调用LLM生成回复
-        // 5. 返回回复 + 可能的操作建议
-    }
-}
-```
-
-**技术方案**: 使用通义千问的多轮对话能力，结合Function Calling实现工具调用（搜索药品、查询价格、下单等）。
-
-### 8.15 AI自动化运营
-
-**场景**: 平台运营人员需要持续产出营销内容和促销方案。
-
-**AI能力**:
-- 自动生成药品营销文案（适合C端展示的商品描述、卖点提炼）
-- 促销方案生成：基于库存+销售数据，推荐促销组合和力度
-- 节日/季节性营销日历自动生成（流感季、换季、节假日）
-- 会员活动策划建议
-
-```java
-@Service
-public class AiOperationAssistant {
-    public MarketingContent generateCopy(Long drugId, String style) { ... }
-    public PromotionPlan generatePromotion(String category, String period) { ... }
-    public MarketingCalendar generateCalendar(int year, int month) { ... }
-}
-```
-
-### 8.16 AI数据清洗与标准化
-
-**场景**: 历史采集数据中存在大量脏数据（错别字、格式不一致、缺失值）。
-
-**AI能力**:
-- 批量标准化厂家名（"同仁堂" vs "北京同仁堂股份有限公司"）
-- 规格格式统一（"0.25g×12片" vs "0.25g*12s"）
-- 识别并修复数据不一致（同一药品不同平台的通用名不同）
-- 缺失字段智能填充（基于已有字段推断缺失的69码、批准文号等）
-
-```java
-@Service
-public class AiDataCleaner {
-    public CleanResult cleanProductData(List<YyProductSnapshot> snapshots) {
-        // 1. 批量发送给LLM进行标准化
-        // 2. 对比知识库中的标准数据
-        // 3. 生成清洗建议
-        // 4. 自动或人工确认后执行清洗
-    }
-}
-```
-
-### 8.17 AI自然语言报表
-
-**场景**: 管理员需要分析数据但不熟悉SQL或BI工具。
-
-**AI能力**:
-- 自然语言查询："上个月阿莫西林在各平台的价格变化趋势" → 自动生成图表
-- 异常发现："哪些药品这个月销量下降了超过20%" → 自动分析
-- 定时报告：每周自动生成采购分析报告
-- 支持多种图表类型（折线图、柱状图、饼图）
-
-```java
-@Service
-public class AiReportEngine {
-    public ReportResult generateReport(String naturalLanguageQuery) {
-        // 1. 调用LLM将自然语言转换为SQL/数据查询
-        // 2. 执行查询获取数据
-        // 3. 调用LLM生成分析结论
-        // 4. 返回数据 + 图表配置 + 文字分析
-    }
-}
-```
-
-### 8.18 AI供应商谈判助手
-
-**场景**: 大型药店需要与供应商谈判采购价格和条件。
-
-**AI能力**:
-- 分析历史采购量和价格，计算议价空间
-- 对比同类供应商的价格和服务
-- 生成谈判策略建议（批量折扣、账期、返利）
-- 市场价格基准参考
-
-```java
-@Service
-public class AiNegotiationAdvisor {
-    public NegotiationStrategy advise(String userId, Long drugId, String supplierCode) {
-        // 1. 分析用户历史采购数据
-        // 2. 对比市场价格
-        // 3. 计算议价空间
-        // 4. 生成谈判策略
-    }
-}
-```
-
-### 8.19 AI异常检测与预警
-
-**场景**: 平台运营需要及时发现异常情况。
-
-**AI能力**:
-- 价格异常波动预警（某药品突然涨价/降价超过阈值）
-- 库存异常预警（某平台突然大量缺货）
-- 订单异常检测（异常采购模式、疑似刷单）
-- 供应商异常预警（发货延迟增加、退货率上升）
-
-```java
-@Service
-public class AiAnomalyDetector {
-    public List<AnomalyAlert> detect() {
-        // 1. 定时扫描价格、库存、订单数据
-        // 2. 基于统计模型检测异常
-        // 3. 调用LLM分析异常原因
-        // 4. 生成预警通知
-    }
-}
-```
-
-**新增数据表**:
-```sql
-CREATE TABLE yy_anomaly_alert (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    alert_type VARCHAR(30) NOT NULL COMMENT 'price/stock/order/supplier',
-    target_type VARCHAR(30) NOT NULL COMMENT 'drug/platform/supplier',
-    target_id BIGINT NOT NULL COMMENT '目标ID',
-    severity VARCHAR(10) NOT NULL COMMENT 'low/medium/high/critical',
-    description VARCHAR(500) NOT NULL COMMENT '异常描述',
-    detail JSON COMMENT '异常详情',
-    ai_analysis TEXT COMMENT 'AI分析原因',
-    status VARCHAR(20) DEFAULT 'active' COMMENT 'active/acknowledged/resolved',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    KEY idx_type_status (alert_type, status),
-    KEY idx_severity (severity)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI异常预警表';
-```
-
-### 8.20 AI用户画像与精准营销
-
-**场景**: 不同类型的药店有不同的采购需求，需要精准推荐。
-
-**AI能力**:
-- 基于采购行为的药店分群（大型连锁/社区药店/诊所/中医馆）
-- 个性化推荐：根据药店类型推荐适合的药品组合
-- 流失预警：识别可能不再使用平台的用户
-- 生命周期管理：新用户引导、活跃用户激励、沉默用户唤醒
-
-```java
-@Service
-public class AiUserProfile {
-    public UserProfile analyze(String userId) {
-        // 1. 分析用户采购历史
-        // 2. 聚类分群
-        // 3. 生成用户画像标签
-        // 4. 个性化推荐策略
-    }
-    public List<String> predictChurn() {
-        // 识别流失风险用户
-    }
-}
-```
-
-**新增数据表**:
-```sql
-CREATE TABLE yy_chat_session (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    user_id BIGINT NOT NULL COMMENT '用户ID',
-    session_id VARCHAR(64) NOT NULL COMMENT '会话ID',
-    messages JSON NOT NULL COMMENT '对话消息历史',
-    intent VARCHAR(50) COMMENT '识别的意图',
-    status VARCHAR(20) DEFAULT 'active' COMMENT 'active/closed',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (id),
-    UNIQUE KEY uk_session (session_id),
-    KEY idx_user (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI客服会话表';
-```
-
 ---
 
-## 9. 实现阶段
+## 10. 实现阶段
 
 ### Phase 1: 基础设施 (第1周)
 
 1. 创建新的包结构（空包）
 2. 创建 yy_drug_master、yy_drug_alias、yy_fusion_review 表
 3. 创建 YyDrugMaster domain/mapper/service
-4. 实现 MatchStrategy 接口和 BarcodeMatchStrategy、ApprovalNumberMatchStrategy
-5. 创建 FusionEngine 骨架
-6. 创建 AiGateway 骨架
+4. 实现 YyMatchStrategy 接口和 YyBarcodeMatchStrategy、YyApprovalNumberMatchStrategy
+5. 创建 YyFusionEngine 骨架
+6. 创建 YyAiGateway 骨架
 
 ### Phase 2: 数据模型迁移 (第2周)
 
@@ -1274,11 +878,11 @@ CREATE TABLE yy_chat_session (
 
 ### Phase 3: 平台适配器 + 融合引擎 (第3周)
 
-1. 实现 PlatformAdapter 接口和 ConfigurablePlatformAdapter
-2. 实现 PlatformAdapterRegistry
-3. 实现 FuzzyMatchStrategy（Levenshtein距离）
-4. 实现 AiMatchStrategy（通义千问集成）
-5. 将 FusionEngine 接入采集管道
+1. 实现 YyPlatformAdapter 接口和 YyConfigurablePlatformAdapter
+2. 实现 YyPlatformAdapterRegistry
+3. 实现 YyFuzzyMatchStrategy（Levenshtein距离）
+4. 实现 YyAiMatchStrategy（通义千问集成）
+5. 将 YyFusionEngine 接入采集管道
 6. 更新 YyDataIngestController
 
 ### Phase 4: Chrome扩展重构 (第3-4周)
@@ -1302,47 +906,26 @@ CREATE TABLE yy_chat_session (
 2. NMPA药品数据爬取和导入脚本
 3. 国家医保目录数据导入
 4. 从已有B2B采集数据中提取说明书信息
-5. 实现 AiGateway（通义千问API集成 + 模型路由 + 缓存）
+5. 实现 YyAiGateway（通义千问API集成 + 模型路由 + 缓存）
 6. 创建 yy_ai_prompt_template 表和管理界面
 
 ### Phase 7: AI核心模块 (第7-8周)
 
-1. 实现 AiMatchEngine（增强融合引擎）
-2. 实现 AiAdvisor（比价顾问）
-3. 实现 AiEvaluator（药品评测）+ 知识库RAG
-4. 实现 AiSearchEngine（智能搜索）
-5. 实现 AiComplianceChecker（合规检查）+ NMPA数据对接
-6. 实现 AiDataCleaner（数据清洗标准化）
-7. C端前端集成AI功能展示
-
-### Phase 8: AI业务模块 (第9-10周)
-
-1. 实现 AiPurchasePlanner（采购计划自动生成）+ yy_purchase_plan表
-2. 实现 AiMarketIntelligence（市场情报）
-3. 实现 AiCrossSell（关联推荐）
-4. 实现 AiPricingAdvisor（定价建议）
-5. 实现 AiInventoryOptimizer（库存优化）+ yy_inventory_alert表
-6. 实现 AiImageSearch（图片识别购药）+ 通义千问VL集成
-7. C端前端集成业务AI功能
-
-### Phase 9: AI高级模块 (第11-12周)
-
-1. 实现 AiChatAssistant（智能客服）+ yy_chat_session表 + Function Calling + 知识库RAG
-2. 实现 AiOperationAssistant（自动化运营）
-3. 实现 AiReportEngine（自然语言报表）
-4. 实现 AiNegotiationAdvisor（供应商谈判助手）
-5. 实现 AiAnomalyDetector（异常检测预警）+ yy_anomaly_alert表
-6. 实现 AiUserProfile（用户画像与精准营销）
-7. C端和后台前端集成全部AI功能
+1. 实现 YyAiMatchEngine（增强融合引擎）
+2. 实现 YyAiAdvisor（比价顾问）
+3. 实现 YyAiEvaluator（药品评测）+ 知识库RAG
+4. 实现 YyAiSearchEngine（智能搜索）
+5. 实现 YyAiDataCleaner（数据清洗标准化）
+6. C端前端集成AI功能展示
 
 ---
 
-## 10. 关键设计决策
+## 11. 关键设计决策
 
 | 决策 | 选择 | 理由 |
 |------|------|------|
 | 包结构 | ruoyi-system内子包 | 避免Maven模块开销，同时实现域分离 |
-| 平台适配器 | DB驱动的ConfigurablePlatformAdapter | 复用现有yy_platform_api配置 |
+| 平台适配器 | DB驱动的YyConfigurablePlatformAdapter | 复用现有yy_platform_api配置 |
 | 药品主数据 | 独立yy_drug_master表 | 提供跨平台匹配的权威参考 |
 | 融合算法 | 多信号(69码>批准文号>模糊>AI) | 直接解决匹配准确率问题 |
 | yy_standard_product | 拆分为yy_product_snapshot(关键字段+JSON) | 消除45列臃肿，保留查询性能 |
@@ -1350,16 +933,17 @@ CREATE TABLE yy_chat_session (
 | LLM服务 | 通义千问/百炼 | 国内合规、中文能力强 |
 | Prompt管理 | 数据库存储，运营可调 | 灵活调整AI行为 |
 | 迁移策略 | 新旧表并行运行 | 降低风险，旧表保持只读 |
+| **命名规范** | **统一Yy前缀** | **与RuoYi框架的Sys前缀形成视觉分离** |
 
 ---
 
-## 11. 关键文件清单
+## 12. 关键文件清单
 
 实现时需要修改的核心文件:
 
 | 文件 | 操作 |
 |------|------|
-| `ruoyi-system/.../yy/service/impl/DataFusionServiceImpl.java` | 重构：接入FusionEngine |
+| `ruoyi-system/.../yy/service/impl/DataFusionServiceImpl.java` | 重构：接入YyFusionEngine |
 | `ruoyi-system/.../yy/domain/YyStandardProduct.java` | 重构：拆分为YyProductSnapshot |
 | `ruoyi-system/.../yy/domain/YyFieldMapping.java` | 增强：新增transform_rule等字段 |
 | `ruoyi-system/.../yy/domain/YyPlatformApi.java` | 不变 |
@@ -1369,54 +953,44 @@ CREATE TABLE yy_chat_session (
 
 ---
 
-## 12. 验证方案
+## 13. 验证方案
 
-### 12.1 融合引擎验证
+### 13.1 融合引擎验证
 
 1. 准备测试数据：同一药品在3个不同平台的原始数据
-2. 验证BarcodeMatchStrategy：69码相同时自动匹配
-3. 验证ApprovalNumberMatchStrategy：批准文号相同时自动匹配
-4. 验证FuzzyMatchStrategy：厂家名不同时仍能匹配（如同仁堂 vs 北京同仁堂股份有限公司）
-5. 验证AiMatchStrategy：极端情况下LLM兜底匹配
+2. 验证YyBarcodeMatchStrategy：69码相同时自动匹配
+3. 验证YyApprovalNumberMatchStrategy：批准文号相同时自动匹配
+4. 验证YyFuzzyMatchStrategy：厂家名不同时仍能匹配（如同仁堂 vs 北京同仁堂股份有限公司）
+5. 验证YyAiMatchStrategy：极端情况下LLM兜底匹配
 6. 验证yy_fusion_review队列：低置信度商品进入人工审核
 
-### 12.2 平台适配器验证
+### 13.2 平台适配器验证
 
-1. 用现有5个平台的配置测试ConfigurablePlatformAdapter
+1. 用现有5个平台的配置测试YyConfigurablePlatformAdapter
 2. 验证字段映射增强（transform_rule）
 3. 验证新平台接入流程
 
-### 12.3 Chrome扩展验证
+### 13.3 Chrome扩展验证
 
 1. 验证动态配置加载
 2. 验证5个平台的数据采集不受影响
 3. 验证新平台接入只需数据库配置+manifest.json加域名
 
-### 12.4 AI能力验证 - 核心模块
+### 13.4 AI能力验证
 
-1. 验证AiGateway调用通义千问API + 结果缓存
+1. 验证YyAiGateway调用通义千问API + 结果缓存
 2. 验证Prompt模板管理
 3. 验证AI匹配对fusion准确率的提升
 4. 验证AI比价顾问的建议质量
 5. 验证AI药品评测的输出
 6. 验证AI智能搜索的语义理解能力
-
-### 12.5 AI能力验证 - 扩展模块
-
-1. 验证AI采购计划的合理性（与人工计划对比）
-2. 验证AI合规检查的准确性（批准文号、供应商资质）
-3. 验证AI市场情报的时效性和准确性
-4. 验证AI关联推荐的转化率
-5. 验证AI图片识别的准确率（通义千问VL）
-6. 验证AI定价建议与市场价的偏差
-7. 验证AI库存预警的及时性
-8. 验证AI智能客服的多轮对话和Function Calling
+7. 验证AI数据清洗的标准化效果
 
 ---
 
-## 13. 审查结果与修订项
+## 14. 审查结果与修订项
 
-### 13.1 P0 必须修复项（实施前）
+### 14.1 P0 必须修复项（实施前）
 
 | # | 问题 | 来源 | 修复方案 | 状态 |
 |---|------|------|----------|------|
@@ -1426,7 +1000,7 @@ CREATE TABLE yy_chat_session (
 | 4 | N+1 查询：200产品批次产生550次DB往返 | Eng PR-1 | 批量化：`SELECT ... WHERE fusion_key IN (...)` + MyBatis `<foreach>` | 待实施 |
 | 5 | LLM调用无熔断/超时/降级 | Eng AR-5 | 5s超时、指数退避、熔断器（3次失败→跳过5分钟）、降级到审核队列 | 待实施 |
 
-### 13.2 P1 实施中修复项
+### 14.2 P1 实施中修复项
 
 | # | 问题 | 修复方案 | 状态 |
 |---|------|----------|------|
@@ -1435,13 +1009,13 @@ CREATE TABLE yy_chat_session (
 | 3 | `YyDataIngestDTO` 无输入校验 | 添加 `@Valid`/`@NotBlank` 注解 |
 | 4 | 域间循环依赖风险 | 定义单向依赖 DAG：`ai→fusion→product→platform` |
 | 5 | 策略链无早停优化；候选集获取策略未定义 | 添加 `stopOnMatch()`；按归一化通用名前缀索引 |
-| 6 | 无 LLM 测试策略 | MockAiGateway 单元测试 + 金标准数据集夜间回归 |
+| 6 | 无 LLM 测试策略 | MockYyAiGateway 单元测试 + 金标准数据集夜间回归 |
 | 7 | JSON 列每次列表查询都需解析 | 高频展示字段保留为独立列（不止6个） |
 | 8 | AI 调用延迟 2-10s 影响实时搜索 | Redis 预计算搜索扩展；激进超时（搜索3s，批处理10s） |
 | 9 | 缓存策略未定义 | L1 内存 + L2 Redis + L3 alias 表；归一化缓存键 |
 | 10 | AI 聊天机器人无边界定义（法律风险） | 定义允许的主题范围和拒绝模式 |
 
-### 13.3 已知风险（接受并监控）
+### 14.3 已知风险（接受并监控）
 
 | 风险 | 影响 | 缓解措施 |
 |------|------|----------|
@@ -1450,7 +1024,7 @@ CREATE TABLE yy_chat_session (
 | 平台封禁数据采集 | 用户账号可能被封 | 速率限制 + 用户告知 |
 | 缓存别名累积错误映射 | 匹配准确率下降 | 定期重新验证 + 用户反馈按钮 |
 
-### 13.4 延后项
+### 14.4 延后项
 
 | 项目 | 延后原因 |
 |------|----------|
@@ -1460,3 +1034,16 @@ CREATE TABLE yy_chat_session (
 | 服务端采集替代方案 | Chrome 扩展现有资产可继续使用 |
 | Vue 2 框架迁移 | 与架构重构无关，独立评估 |
 | UI 规范文档 | 后端架构先行，UI 规范作为配套文档单独编写 |
+
+---
+
+## 附录A：命名规范对照表
+
+| 类别 | RuoYi框架 | yy模块 | 示例 |
+|------|-----------|--------|------|
+| 实体类 | Sys* | Yy* | SysUser → YyUser |
+| AI类 | - | YyAi* | YyAiGateway, YyAiMatchEngine |
+| Service接口 | ISys*Service | IYy*Service | ISysUserService → IYyUserService |
+| Service实现 | Sys*ServiceImpl | Yy*ServiceImpl | SysUserServiceImpl → YyUserServiceImpl |
+| Mapper | Sys*Mapper | Yy*Mapper | SysUserMapper → YyUserMapper |
+| Controller | Sys*Controller | Yy*Controller | SysUserController → YyUserController |

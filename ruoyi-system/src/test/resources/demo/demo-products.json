@@ -1,0 +1,755 @@
+{
+  "updatedAt": "2026-05-05T00:00:00",
+  "products": [
+    {
+      "productName": "阿莫西林胶囊",
+      "commonName": "阿莫西林",
+      "specification": "0.5g×30粒",
+      "manufacturer": "华北制药",
+      "approvalNumber": "国药准字H13020001",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 12.50, "freightAmount": 0, "stockQuantity": 500, "shopName": "华北制药官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 11.80, "freightAmount": 8.00, "stockQuantity": 200, "shopName": "石家庄医药批发"},
+        {"platform": "熊猫药药", "priceCurrent": 13.20, "freightAmount": 5.00, "stockQuantity": 350, "shopName": "华北药品专营店"},
+        {"platform": "药帮忙", "priceCurrent": 10.50, "freightAmount": 6.00, "stockQuantity": 150, "shopName": "河北医药商城"},
+        {"platform": "一药城", "priceCurrent": 14.00, "freightAmount": 0, "stockQuantity": 420, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 11.20, "freightAmount": 7.00, "stockQuantity": 280, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "头孢克洛胶囊",
+      "commonName": "头孢克洛",
+      "specification": "0.25g×12粒",
+      "manufacturer": "广州白云山",
+      "approvalNumber": "国药准字H44020002",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 25.00, "freightAmount": 0, "stockQuantity": 300, "shopName": "白云山官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 22.50, "freightAmount": 6.00, "stockQuantity": 180, "shopName": "广州医药批发中心"},
+        {"platform": "熊猫药药", "priceCurrent": 26.80, "freightAmount": 0, "stockQuantity": 250, "shopName": "白云山药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 20.00, "freightAmount": 8.00, "stockQuantity": 90, "shopName": "广东药品商城"},
+        {"platform": "一药城", "priceCurrent": 27.50, "freightAmount": 0, "stockQuantity": 320, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 23.00, "freightAmount": 5.00, "stockQuantity": 200, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "阿奇霉素片",
+      "commonName": "阿奇霉素",
+      "specification": "0.25g×6片",
+      "manufacturer": "辉瑞制药",
+      "approvalNumber": "国药准字H10960003",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 38.00, "freightAmount": 0, "stockQuantity": 400, "shopName": "辉瑞官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 35.50, "freightAmount": 5.00, "stockQuantity": 200, "shopName": "大连医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 42.00, "freightAmount": 0, "stockQuantity": 300, "shopName": "辉瑞药品专营店"},
+        {"platform": "药帮忙", "priceCurrent": 32.00, "freightAmount": 8.00, "stockQuantity": 120, "shopName": "辽宁药品商城"},
+        {"platform": "一药城", "priceCurrent": 45.00, "freightAmount": 0, "stockQuantity": 380, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 36.00, "freightAmount": 6.00, "stockQuantity": 260, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "左氧氟沙星片",
+      "commonName": "左氧氟沙星",
+      "specification": "0.5g×6片",
+      "manufacturer": "第一三共制药",
+      "approvalNumber": "国药准字H20040004",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 28.00, "freightAmount": 0, "stockQuantity": 350, "shopName": "第一三共官方店"},
+        {"platform": "药交换", "priceCurrent": 25.80, "freightAmount": 6.00, "stockQuantity": 170, "shopName": "北京医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 30.50, "freightAmount": 0, "stockQuantity": 280, "shopName": "三共药品专营"},
+        {"platform": "药帮忙", "priceCurrent": 23.00, "freightAmount": 7.00, "stockQuantity": 100, "shopName": "京津医药商城"},
+        {"platform": "一药城", "priceCurrent": 32.00, "freightAmount": 0, "stockQuantity": 330, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 26.50, "freightAmount": 5.00, "stockQuantity": 240, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "罗红霉素胶囊",
+      "commonName": "罗红霉素",
+      "specification": "150mg×12粒",
+      "manufacturer": "扬子江药业",
+      "approvalNumber": "国药准字H32020005",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 16.50, "freightAmount": 0, "stockQuantity": 450, "shopName": "扬子江官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 14.80, "freightAmount": 6.00, "stockQuantity": 220, "shopName": "泰州医药批发中心"},
+        {"platform": "熊猫药药", "priceCurrent": 17.50, "freightAmount": 0, "stockQuantity": 320, "shopName": "扬子江药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 13.00, "freightAmount": 7.00, "stockQuantity": 130, "shopName": "江苏医药商城"},
+        {"platform": "一药城", "priceCurrent": 18.50, "freightAmount": 0, "stockQuantity": 400, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 15.20, "freightAmount": 5.00, "stockQuantity": 290, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "克拉霉素片",
+      "commonName": "克拉霉素",
+      "specification": "250mg×8片",
+      "manufacturer": "恒瑞医药",
+      "approvalNumber": "国药准字H10970006",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 32.00, "freightAmount": 0, "stockQuantity": 280, "shopName": "恒瑞官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 29.50, "freightAmount": 5.00, "stockQuantity": 160, "shopName": "江苏医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 34.00, "freightAmount": 0, "stockQuantity": 220, "shopName": "恒瑞药业专营店"},
+        {"platform": "药帮忙", "priceCurrent": 27.00, "freightAmount": 8.00, "stockQuantity": 80, "shopName": "连云港药品商城"},
+        {"platform": "一药城", "priceCurrent": 36.00, "freightAmount": 0, "stockQuantity": 300, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 30.00, "freightAmount": 6.00, "stockQuantity": 210, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "盐酸多西环素片",
+      "commonName": "多西环素",
+      "specification": "100mg×12片",
+      "manufacturer": "正大天晴药业",
+      "approvalNumber": "国药准字H20030007",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 18.00, "freightAmount": 0, "stockQuantity": 350, "shopName": "正大天晴官方店"},
+        {"platform": "药交换", "priceCurrent": 16.20, "freightAmount": 6.00, "stockQuantity": 180, "shopName": "南京医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 19.50, "freightAmount": 0, "stockQuantity": 270, "shopName": "天晴药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 14.50, "freightAmount": 7.00, "stockQuantity": 100, "shopName": "江苏药品商城"},
+        {"platform": "一药城", "priceCurrent": 20.50, "freightAmount": 0, "stockQuantity": 330, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 17.00, "freightAmount": 5.00, "stockQuantity": 240, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "甲硝唑片",
+      "commonName": "甲硝唑",
+      "specification": "200mg×30片",
+      "manufacturer": "上海医药",
+      "approvalNumber": "国药准字H31020008",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 5.50, "freightAmount": 0, "stockQuantity": 600, "shopName": "上海医药官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 4.80, "freightAmount": 7.00, "stockQuantity": 350, "shopName": "上海药品批发中心"},
+        {"platform": "熊猫药药", "priceCurrent": 6.00, "freightAmount": 5.00, "stockQuantity": 450, "shopName": "上药专营店"},
+        {"platform": "药帮忙", "priceCurrent": 4.20, "freightAmount": 6.00, "stockQuantity": 200, "shopName": "沪上医药商城"},
+        {"platform": "一药城", "priceCurrent": 6.50, "freightAmount": 0, "stockQuantity": 500, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 5.00, "freightAmount": 5.00, "stockQuantity": 380, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "注射用头孢曲松钠",
+      "commonName": "头孢曲松钠",
+      "specification": "1.0g×1支",
+      "manufacturer": "罗氏制药",
+      "approvalNumber": "国药准字H10980009",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 65.00, "freightAmount": 0, "stockQuantity": 200, "shopName": "罗氏官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 58.00, "freightAmount": 8.00, "stockQuantity": 120, "shopName": "上海医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 72.00, "freightAmount": 0, "stockQuantity": 180, "shopName": "罗氏药品专营"},
+        {"platform": "药帮忙", "priceCurrent": 52.00, "freightAmount": 10.00, "stockQuantity": 60, "shopName": "进口药品商城"},
+        {"platform": "一药城", "priceCurrent": 78.00, "freightAmount": 0, "stockQuantity": 220, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 60.00, "freightAmount": 6.00, "stockQuantity": 150, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "阿莫西林克拉维酸钾片",
+      "commonName": "阿莫西林克拉维酸钾",
+      "specification": "375mg×8片",
+      "manufacturer": "联邦制药",
+      "approvalNumber": "国药准字H20000010",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 22.00, "freightAmount": 0, "stockQuantity": 320, "shopName": "联邦制药官方店"},
+        {"platform": "药交换", "priceCurrent": 19.80, "freightAmount": 6.00, "stockQuantity": 170, "shopName": "珠海医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 23.50, "freightAmount": 0, "stockQuantity": 260, "shopName": "联邦药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 18.00, "freightAmount": 8.00, "stockQuantity": 90, "shopName": "广东药品商城"},
+        {"platform": "一药城", "priceCurrent": 24.50, "freightAmount": 0, "stockQuantity": 300, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 20.50, "freightAmount": 5.00, "stockQuantity": 220, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "硝苯地平缓释片",
+      "commonName": "硝苯地平",
+      "specification": "30mg×7片",
+      "manufacturer": "拜耳医药",
+      "approvalNumber": "国药准字J20120011",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 35.00, "freightAmount": 0, "stockQuantity": 300, "shopName": "拜耳官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 31.50, "freightAmount": 5.00, "stockQuantity": 180, "shopName": "北京医药批发中心"},
+        {"platform": "熊猫药药", "priceCurrent": 38.00, "freightAmount": 0, "stockQuantity": 250, "shopName": "拜耳药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 28.00, "freightAmount": 8.00, "stockQuantity": 100, "shopName": "京津医药商城"},
+        {"platform": "一药城", "priceCurrent": 42.00, "freightAmount": 0, "stockQuantity": 320, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 33.00, "freightAmount": 6.00, "stockQuantity": 210, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "阿托伐他汀钙片",
+      "commonName": "阿托伐他汀",
+      "specification": "20mg×7片",
+      "manufacturer": "辉瑞制药",
+      "approvalNumber": "国药准字H20050012",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 55.00, "freightAmount": 0, "stockQuantity": 280, "shopName": "辉瑞官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 49.50, "freightAmount": 5.00, "stockQuantity": 160, "shopName": "辽宁医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 60.00, "freightAmount": 0, "stockQuantity": 230, "shopName": "辉瑞药品专营"},
+        {"platform": "药帮忙", "priceCurrent": 44.00, "freightAmount": 8.00, "stockQuantity": 80, "shopName": "东北药品商城"},
+        {"platform": "一药城", "priceCurrent": 65.00, "freightAmount": 0, "stockQuantity": 300, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 52.00, "freightAmount": 6.00, "stockQuantity": 200, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "苯磺酸氨氯地平片",
+      "commonName": "氨氯地平",
+      "specification": "5mg×14片",
+      "manufacturer": "辉瑞制药",
+      "approvalNumber": "国药准字H10950013",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 42.00, "freightAmount": 0, "stockQuantity": 320, "shopName": "辉瑞官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 37.80, "freightAmount": 5.00, "stockQuantity": 190, "shopName": "东北医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 45.00, "freightAmount": 0, "stockQuantity": 270, "shopName": "辉瑞药品专营店"},
+        {"platform": "药帮忙", "priceCurrent": 34.00, "freightAmount": 8.00, "stockQuantity": 100, "shopName": "辽宁医药商城"},
+        {"platform": "一药城", "priceCurrent": 48.00, "freightAmount": 0, "stockQuantity": 310, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 39.00, "freightAmount": 6.00, "stockQuantity": 230, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "氯沙坦钾片",
+      "commonName": "氯沙坦",
+      "specification": "50mg×7片",
+      "manufacturer": "默沙东制药",
+      "approvalNumber": "国药准字J20110014",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 48.00, "freightAmount": 0, "stockQuantity": 260, "shopName": "默沙东官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 43.20, "freightAmount": 6.00, "stockQuantity": 150, "shopName": "浙江医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 52.00, "freightAmount": 0, "stockQuantity": 210, "shopName": "默沙东药品专营"},
+        {"platform": "药帮忙", "priceCurrent": 38.00, "freightAmount": 8.00, "stockQuantity": 80, "shopName": "华东医药商城"},
+        {"platform": "一药城", "priceCurrent": 55.00, "freightAmount": 0, "stockQuantity": 280, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 45.00, "freightAmount": 5.00, "stockQuantity": 190, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "厄贝沙坦片",
+      "commonName": "厄贝沙坦",
+      "specification": "150mg×7片",
+      "manufacturer": "赛诺菲制药",
+      "approvalNumber": "国药准字J20120015",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 38.00, "freightAmount": 0, "stockQuantity": 280, "shopName": "赛诺菲官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 34.20, "freightAmount": 5.00, "stockQuantity": 160, "shopName": "北京医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 41.00, "freightAmount": 0, "stockQuantity": 230, "shopName": "赛诺菲药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 31.00, "freightAmount": 7.00, "stockQuantity": 90, "shopName": "华北医药商城"},
+        {"platform": "一药城", "priceCurrent": 44.00, "freightAmount": 0, "stockQuantity": 300, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 36.00, "freightAmount": 6.00, "stockQuantity": 200, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "氢氯噻嗪片",
+      "commonName": "氢氯噻嗪",
+      "specification": "25mg×30片",
+      "manufacturer": "上海医药集团",
+      "approvalNumber": "国药准字H31020016",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 8.50, "freightAmount": 0, "stockQuantity": 500, "shopName": "上药官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 7.20, "freightAmount": 6.00, "stockQuantity": 300, "shopName": "上海药品批发"},
+        {"platform": "熊猫药药", "priceCurrent": 9.00, "freightAmount": 5.00, "stockQuantity": 400, "shopName": "上药集团专营"},
+        {"platform": "药帮忙", "priceCurrent": 6.50, "freightAmount": 6.00, "stockQuantity": 180, "shopName": "沪上药品商城"},
+        {"platform": "一药城", "priceCurrent": 10.00, "freightAmount": 0, "stockQuantity": 450, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 7.80, "freightAmount": 5.00, "stockQuantity": 350, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "盐酸普萘洛尔片",
+      "commonName": "普萘洛尔",
+      "specification": "10mg×100片",
+      "manufacturer": "华润双鹤药业",
+      "approvalNumber": "国药准字H11020017",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 15.00, "freightAmount": 0, "stockQuantity": 400, "shopName": "华润双鹤官方店"},
+        {"platform": "药交换", "priceCurrent": 13.20, "freightAmount": 6.00, "stockQuantity": 220, "shopName": "北京药品批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 16.50, "freightAmount": 0, "stockQuantity": 320, "shopName": "双鹤药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 12.00, "freightAmount": 7.00, "stockQuantity": 130, "shopName": "华北医药商城"},
+        {"platform": "一药城", "priceCurrent": 17.00, "freightAmount": 0, "stockQuantity": 380, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 14.00, "freightAmount": 5.00, "stockQuantity": 280, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "单硝酸异山梨酯片",
+      "commonName": "单硝酸异山梨酯",
+      "specification": "20mg×30片",
+      "manufacturer": "鲁南制药",
+      "approvalNumber": "国药准字H10970018",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 28.00, "freightAmount": 0, "stockQuantity": 300, "shopName": "鲁南制药官方店"},
+        {"platform": "药交换", "priceCurrent": 24.50, "freightAmount": 6.00, "stockQuantity": 170, "shopName": "临沂医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 30.00, "freightAmount": 0, "stockQuantity": 240, "shopName": "鲁南药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 22.00, "freightAmount": 8.00, "stockQuantity": 90, "shopName": "山东医药商城"},
+        {"platform": "一药城", "priceCurrent": 32.00, "freightAmount": 0, "stockQuantity": 290, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 26.00, "freightAmount": 5.00, "stockQuantity": 210, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "缬沙坦胶囊",
+      "commonName": "缬沙坦",
+      "specification": "80mg×28粒",
+      "manufacturer": "诺华制药",
+      "approvalNumber": "国药准字H20040019",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 68.00, "freightAmount": 0, "stockQuantity": 240, "shopName": "诺华官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 61.20, "freightAmount": 6.00, "stockQuantity": 140, "shopName": "北京医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 75.00, "freightAmount": 0, "stockQuantity": 200, "shopName": "诺华药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 55.00, "freightAmount": 10.00, "stockQuantity": 70, "shopName": "进口药品商城"},
+        {"platform": "一药城", "priceCurrent": 80.00, "freightAmount": 0, "stockQuantity": 260, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 64.00, "freightAmount": 5.00, "stockQuantity": 180, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "瑞舒伐他汀钙片",
+      "commonName": "瑞舒伐他汀",
+      "specification": "10mg×7片",
+      "manufacturer": "阿斯利康",
+      "approvalNumber": "国药准字J20150020",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 52.00, "freightAmount": 0, "stockQuantity": 260, "shopName": "阿斯利康官方店"},
+        {"platform": "药交换", "priceCurrent": 46.80, "freightAmount": 5.00, "stockQuantity": 150, "shopName": "无锡医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 56.00, "freightAmount": 0, "stockQuantity": 210, "shopName": "阿斯利康专营"},
+        {"platform": "药帮忙", "priceCurrent": 42.00, "freightAmount": 8.00, "stockQuantity": 80, "shopName": "江苏医药商城"},
+        {"platform": "一药城", "priceCurrent": 60.00, "freightAmount": 0, "stockQuantity": 280, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 49.00, "freightAmount": 6.00, "stockQuantity": 190, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "奥美拉唑肠溶胶囊",
+      "commonName": "奥美拉唑",
+      "specification": "20mg×14粒",
+      "manufacturer": "阿斯利康",
+      "approvalNumber": "国药准字H20030021",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 38.00, "freightAmount": 0, "stockQuantity": 350, "shopName": "阿斯利康官方店"},
+        {"platform": "药交换", "priceCurrent": 34.20, "freightAmount": 5.00, "stockQuantity": 200, "shopName": "江苏医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 41.00, "freightAmount": 0, "stockQuantity": 280, "shopName": "阿斯利康专营"},
+        {"platform": "药帮忙", "priceCurrent": 30.00, "freightAmount": 8.00, "stockQuantity": 110, "shopName": "华东医药商城"},
+        {"platform": "一药城", "priceCurrent": 45.00, "freightAmount": 0, "stockQuantity": 340, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 36.00, "freightAmount": 6.00, "stockQuantity": 250, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "铝碳酸镁片",
+      "commonName": "铝碳酸镁",
+      "specification": "500mg×20片",
+      "manufacturer": "拜耳医药",
+      "approvalNumber": "国药准字H10960022",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 22.00, "freightAmount": 0, "stockQuantity": 380, "shopName": "拜耳官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 19.50, "freightAmount": 5.00, "stockQuantity": 220, "shopName": "北京医药批发中心"},
+        {"platform": "熊猫药药", "priceCurrent": 24.00, "freightAmount": 0, "stockQuantity": 300, "shopName": "拜耳药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 17.00, "freightAmount": 7.00, "stockQuantity": 120, "shopName": "华北药品商城"},
+        {"platform": "一药城", "priceCurrent": 25.00, "freightAmount": 0, "stockQuantity": 350, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 20.50, "freightAmount": 6.00, "stockQuantity": 270, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "蒙脱石散",
+      "commonName": "蒙脱石",
+      "specification": "3g×10袋",
+      "manufacturer": "益普生药业",
+      "approvalNumber": "国药准字H20040023",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 18.00, "freightAmount": 0, "stockQuantity": 450, "shopName": "益普生官方店"},
+        {"platform": "药交换", "priceCurrent": 15.80, "freightAmount": 6.00, "stockQuantity": 260, "shopName": "天津医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 19.50, "freightAmount": 0, "stockQuantity": 360, "shopName": "益普生药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 14.00, "freightAmount": 7.00, "stockQuantity": 150, "shopName": "华北药品商城"},
+        {"platform": "一药城", "priceCurrent": 20.50, "freightAmount": 0, "stockQuantity": 420, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 16.50, "freightAmount": 5.00, "stockQuantity": 310, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "多潘立酮片",
+      "commonName": "多潘立酮",
+      "specification": "10mg×30片",
+      "manufacturer": "西安杨森制药",
+      "approvalNumber": "国药准字H10910024",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 25.00, "freightAmount": 0, "stockQuantity": 350, "shopName": "杨森官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 22.00, "freightAmount": 5.00, "stockQuantity": 190, "shopName": "陕西医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 27.00, "freightAmount": 0, "stockQuantity": 280, "shopName": "杨森药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 20.00, "freightAmount": 8.00, "stockQuantity": 100, "shopName": "西北医药商城"},
+        {"platform": "一药城", "priceCurrent": 28.50, "freightAmount": 0, "stockQuantity": 330, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 23.00, "freightAmount": 6.00, "stockQuantity": 240, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "复合消化酶片",
+      "commonName": "消化酶",
+      "specification": "150mg×30片",
+      "manufacturer": "北京韩美药品",
+      "approvalNumber": "国药准字H20050025",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 32.00, "freightAmount": 0, "stockQuantity": 280, "shopName": "韩美官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 28.50, "freightAmount": 6.00, "stockQuantity": 160, "shopName": "北京医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 34.50, "freightAmount": 0, "stockQuantity": 230, "shopName": "韩美药品专营"},
+        {"platform": "药帮忙", "priceCurrent": 25.00, "freightAmount": 7.00, "stockQuantity": 85, "shopName": "京津医药商城"},
+        {"platform": "一药城", "priceCurrent": 36.00, "freightAmount": 0, "stockQuantity": 270, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 30.00, "freightAmount": 5.00, "stockQuantity": 200, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "西咪替丁片",
+      "commonName": "西咪替丁",
+      "specification": "200mg×30片",
+      "manufacturer": "哈药集团",
+      "approvalNumber": "国药准字H23020026",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 12.00, "freightAmount": 0, "stockQuantity": 420, "shopName": "哈药官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 10.50, "freightAmount": 6.00, "stockQuantity": 240, "shopName": "哈尔滨医药批发"},
+        {"platform": "熊猫药药", "priceCurrent": 13.00, "freightAmount": 0, "stockQuantity": 340, "shopName": "哈药集团专营"},
+        {"platform": "药帮忙", "priceCurrent": 9.50, "freightAmount": 7.00, "stockQuantity": 140, "shopName": "黑龙江药品商城"},
+        {"platform": "一药城", "priceCurrent": 14.00, "freightAmount": 0, "stockQuantity": 390, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 11.00, "freightAmount": 5.00, "stockQuantity": 300, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "碳酸钙D3颗粒",
+      "commonName": "碳酸钙D3",
+      "specification": "600mg×30袋",
+      "manufacturer": "惠氏制药",
+      "approvalNumber": "国药准字H10950027",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 58.00, "freightAmount": 0, "stockQuantity": 250, "shopName": "惠氏官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 52.20, "freightAmount": 5.00, "stockQuantity": 140, "shopName": "苏州医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 63.00, "freightAmount": 0, "stockQuantity": 200, "shopName": "惠氏药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 46.00, "freightAmount": 8.00, "stockQuantity": 70, "shopName": "华东医药商城"},
+        {"platform": "一药城", "priceCurrent": 68.00, "freightAmount": 0, "stockQuantity": 270, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 55.00, "freightAmount": 6.00, "stockQuantity": 180, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "复方谷氨酰胺颗粒",
+      "commonName": "复方谷氨酰胺",
+      "specification": "662mg×20袋",
+      "manufacturer": "韩美药品",
+      "approvalNumber": "国药准字H20060028",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 35.00, "freightAmount": 0, "stockQuantity": 280, "shopName": "韩美官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 31.00, "freightAmount": 6.00, "stockQuantity": 150, "shopName": "北京医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 38.00, "freightAmount": 0, "stockQuantity": 220, "shopName": "韩美药品专营"},
+        {"platform": "药帮忙", "priceCurrent": 28.00, "freightAmount": 8.00, "stockQuantity": 80, "shopName": "华北医药商城"},
+        {"platform": "一药城", "priceCurrent": 40.00, "freightAmount": 0, "stockQuantity": 260, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 33.00, "freightAmount": 5.00, "stockQuantity": 200, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "盐酸氨溴索口服溶液",
+      "commonName": "氨溴索",
+      "specification": "100ml:300mg",
+      "manufacturer": "勃林格殷格翰",
+      "approvalNumber": "国药准字H20020029",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 28.00, "freightAmount": 0, "stockQuantity": 350, "shopName": "勃林格官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 24.50, "freightAmount": 6.00, "stockQuantity": 200, "shopName": "上海医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 30.00, "freightAmount": 0, "stockQuantity": 290, "shopName": "勃林格药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 22.00, "freightAmount": 8.00, "stockQuantity": 110, "shopName": "华东药品商城"},
+        {"platform": "一药城", "priceCurrent": 32.00, "freightAmount": 0, "stockQuantity": 340, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 26.00, "freightAmount": 5.00, "stockQuantity": 250, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "复方氨酚烷胺胶囊",
+      "commonName": "氨酚烷胺",
+      "specification": "12粒/盒",
+      "manufacturer": "华润三九药业",
+      "approvalNumber": "国药准字H44020030",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 15.00, "freightAmount": 0, "stockQuantity": 500, "shopName": "三九官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 13.00, "freightAmount": 5.00, "stockQuantity": 300, "shopName": "深圳医药批发"},
+        {"platform": "熊猫药药", "priceCurrent": 16.00, "freightAmount": 0, "stockQuantity": 420, "shopName": "三九药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 12.00, "freightAmount": 6.00, "stockQuantity": 180, "shopName": "广东药品商城"},
+        {"platform": "一药城", "priceCurrent": 17.00, "freightAmount": 0, "stockQuantity": 460, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 14.00, "freightAmount": 5.00, "stockQuantity": 350, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "氯雷他定片",
+      "commonName": "氯雷他定",
+      "specification": "10mg×6片",
+      "manufacturer": "先灵葆雅制药",
+      "approvalNumber": "国药准字H10970031",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 20.00, "freightAmount": 0, "stockQuantity": 400, "shopName": "先灵葆雅官方店"},
+        {"platform": "药交换", "priceCurrent": 17.50, "freightAmount": 5.00, "stockQuantity": 230, "shopName": "上海医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 22.00, "freightAmount": 0, "stockQuantity": 320, "shopName": "先灵葆雅专营"},
+        {"platform": "药帮忙", "priceCurrent": 16.00, "freightAmount": 7.00, "stockQuantity": 130, "shopName": "华东医药商城"},
+        {"platform": "一药城", "priceCurrent": 23.00, "freightAmount": 0, "stockQuantity": 370, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 18.50, "freightAmount": 6.00, "stockQuantity": 280, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "布地奈德鼻喷雾剂",
+      "commonName": "布地奈德",
+      "specification": "120喷/瓶",
+      "manufacturer": "阿斯利康",
+      "approvalNumber": "国药准字J20180032",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 95.00, "freightAmount": 0, "stockQuantity": 180, "shopName": "阿斯利康官方店"},
+        {"platform": "药交换", "priceCurrent": 85.50, "freightAmount": 8.00, "stockQuantity": 100, "shopName": "江苏医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 105.00, "freightAmount": 0, "stockQuantity": 150, "shopName": "阿斯利康专营"},
+        {"platform": "药帮忙", "priceCurrent": 76.00, "freightAmount": 10.00, "stockQuantity": 50, "shopName": "进口药品商城"},
+        {"platform": "一药城", "priceCurrent": 110.00, "freightAmount": 0, "stockQuantity": 190, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 90.00, "freightAmount": 6.00, "stockQuantity": 130, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "复方甘草片",
+      "commonName": "复方甘草",
+      "specification": "100片/瓶",
+      "manufacturer": "国药集团",
+      "approvalNumber": "国药准字H11020033",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 8.00, "freightAmount": 0, "stockQuantity": 600, "shopName": "国药官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 7.00, "freightAmount": 5.00, "stockQuantity": 400, "shopName": "北京药品批发"},
+        {"platform": "熊猫药药", "priceCurrent": 9.00, "freightAmount": 0, "stockQuantity": 500, "shopName": "国药集团专营"},
+        {"platform": "药帮忙", "priceCurrent": 6.00, "freightAmount": 6.00, "stockQuantity": 250, "shopName": "华北药品商城"},
+        {"platform": "一药城", "priceCurrent": 9.50, "freightAmount": 0, "stockQuantity": 550, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 7.50, "freightAmount": 5.00, "stockQuantity": 420, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "头孢地尼胶囊",
+      "commonName": "头孢地尼",
+      "specification": "100mg×6粒",
+      "manufacturer": "广州白云山",
+      "approvalNumber": "国药准字H20050034",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 42.00, "freightAmount": 0, "stockQuantity": 250, "shopName": "白云山官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 37.50, "freightAmount": 6.00, "stockQuantity": 140, "shopName": "广州医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 45.00, "freightAmount": 0, "stockQuantity": 200, "shopName": "白云山药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 34.00, "freightAmount": 8.00, "stockQuantity": 70, "shopName": "广东药品商城"},
+        {"platform": "一药城", "priceCurrent": 48.00, "freightAmount": 0, "stockQuantity": 240, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 39.00, "freightAmount": 5.00, "stockQuantity": 180, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "清开灵颗粒",
+      "commonName": "清开灵",
+      "specification": "10g×10袋",
+      "manufacturer": "北京同仁堂",
+      "approvalNumber": "国药准字Z11020035",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 22.00, "freightAmount": 0, "stockQuantity": 380, "shopName": "同仁堂官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 19.50, "freightAmount": 5.00, "stockQuantity": 220, "shopName": "北京医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 24.00, "freightAmount": 0, "stockQuantity": 300, "shopName": "同仁堂药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 17.00, "freightAmount": 7.00, "stockQuantity": 120, "shopName": "华北中药商城"},
+        {"platform": "一药城", "priceCurrent": 25.00, "freightAmount": 0, "stockQuantity": 350, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 20.50, "freightAmount": 6.00, "stockQuantity": 270, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "匹多莫德口服液",
+      "commonName": "匹多莫德",
+      "specification": "400mg×10支",
+      "manufacturer": "多帕药业",
+      "approvalNumber": "国药准字H20100036",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 120.00, "freightAmount": 0, "stockQuantity": 150, "shopName": "多帕药业官方店"},
+        {"platform": "药交换", "priceCurrent": 108.00, "freightAmount": 8.00, "stockQuantity": 80, "shopName": "上海医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 135.00, "freightAmount": 0, "stockQuantity": 120, "shopName": "多帕药品专营"},
+        {"platform": "药帮忙", "priceCurrent": 96.00, "freightAmount": 12.00, "stockQuantity": 40, "shopName": "进口药品商城"},
+        {"platform": "一药城", "priceCurrent": 145.00, "freightAmount": 0, "stockQuantity": 160, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 115.00, "freightAmount": 6.00, "stockQuantity": 110, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "盐酸二甲双胍片",
+      "commonName": "二甲双胍",
+      "specification": "500mg×30片",
+      "manufacturer": "默克制药",
+      "approvalNumber": "国药准字H20020037",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 25.00, "freightAmount": 0, "stockQuantity": 450, "shopName": "默克官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 22.00, "freightAmount": 5.00, "stockQuantity": 280, "shopName": "上海医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 27.00, "freightAmount": 0, "stockQuantity": 380, "shopName": "默克药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 20.00, "freightAmount": 7.00, "stockQuantity": 160, "shopName": "华东医药商城"},
+        {"platform": "一药城", "priceCurrent": 28.50, "freightAmount": 0, "stockQuantity": 420, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 23.00, "freightAmount": 6.00, "stockQuantity": 320, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "格列美脲片",
+      "commonName": "格列美脲",
+      "specification": "2mg×15片",
+      "manufacturer": "赛诺菲制药",
+      "approvalNumber": "国药准字J20080038",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 45.00, "freightAmount": 0, "stockQuantity": 260, "shopName": "赛诺菲官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 40.00, "freightAmount": 5.00, "stockQuantity": 150, "shopName": "北京医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 48.00, "freightAmount": 0, "stockQuantity": 210, "shopName": "赛诺菲药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 36.00, "freightAmount": 8.00, "stockQuantity": 80, "shopName": "华北医药商城"},
+        {"platform": "一药城", "priceCurrent": 50.00, "freightAmount": 0, "stockQuantity": 240, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 42.00, "freightAmount": 6.00, "stockQuantity": 180, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "阿卡波糖片",
+      "commonName": "阿卡波糖",
+      "specification": "50mg×30片",
+      "manufacturer": "拜耳医药",
+      "approvalNumber": "国药准字H19990039",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 75.00, "freightAmount": 0, "stockQuantity": 220, "shopName": "拜耳官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 67.50, "freightAmount": 6.00, "stockQuantity": 130, "shopName": "北京医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 82.00, "freightAmount": 0, "stockQuantity": 180, "shopName": "拜耳药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 60.00, "freightAmount": 10.00, "stockQuantity": 60, "shopName": "华北药品商城"},
+        {"platform": "一药城", "priceCurrent": 88.00, "freightAmount": 0, "stockQuantity": 210, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 70.00, "freightAmount": 5.00, "stockQuantity": 160, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "磷酸西格列汀片",
+      "commonName": "西格列汀",
+      "specification": "100mg×7片",
+      "manufacturer": "默沙东制药",
+      "approvalNumber": "国药准字J20090040",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 85.00, "freightAmount": 0, "stockQuantity": 200, "shopName": "默沙东官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 76.50, "freightAmount": 6.00, "stockQuantity": 110, "shopName": "浙江医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 92.00, "freightAmount": 0, "stockQuantity": 160, "shopName": "默沙东药品专营"},
+        {"platform": "药帮忙", "priceCurrent": 68.00, "freightAmount": 10.00, "stockQuantity": 55, "shopName": "华东医药商城"},
+        {"platform": "一药城", "priceCurrent": 98.00, "freightAmount": 0, "stockQuantity": 190, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 80.00, "freightAmount": 5.00, "stockQuantity": 140, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "达格列净片",
+      "commonName": "达格列净",
+      "specification": "10mg×10片",
+      "manufacturer": "阿斯利康",
+      "approvalNumber": "国药准字J20170041",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 180.00, "freightAmount": 0, "stockQuantity": 120, "shopName": "阿斯利康官方店"},
+        {"platform": "药交换", "priceCurrent": 162.00, "freightAmount": 8.00, "stockQuantity": 70, "shopName": "无锡医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 195.00, "freightAmount": 0, "stockQuantity": 100, "shopName": "阿斯利康专营"},
+        {"platform": "药帮忙", "priceCurrent": 144.00, "freightAmount": 12.00, "stockQuantity": 35, "shopName": "江苏医药商城"},
+        {"platform": "一药城", "priceCurrent": 200.00, "freightAmount": 0, "stockQuantity": 130, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 170.00, "freightAmount": 6.00, "stockQuantity": 90, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "维生素C片",
+      "commonName": "维生素C",
+      "specification": "100mg×60片",
+      "manufacturer": "东北制药",
+      "approvalNumber": "国药准字H21020042",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 8.50, "freightAmount": 0, "stockQuantity": 600, "shopName": "东北制药官方店"},
+        {"platform": "药交换", "priceCurrent": 7.00, "freightAmount": 5.00, "stockQuantity": 400, "shopName": "沈阳医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 9.00, "freightAmount": 0, "stockQuantity": 500, "shopName": "东北药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 6.50, "freightAmount": 6.00, "stockQuantity": 250, "shopName": "辽宁医药商城"},
+        {"platform": "一药城", "priceCurrent": 10.00, "freightAmount": 0, "stockQuantity": 550, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 7.50, "freightAmount": 5.00, "stockQuantity": 420, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "复合维生素B片",
+      "commonName": "维生素B族",
+      "specification": "60片/瓶",
+      "manufacturer": "惠氏制药",
+      "approvalNumber": "国药准字H10970043",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 35.00, "freightAmount": 0, "stockQuantity": 350, "shopName": "惠氏官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 31.00, "freightAmount": 5.00, "stockQuantity": 200, "shopName": "苏州医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 38.00, "freightAmount": 0, "stockQuantity": 280, "shopName": "惠氏药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 28.00, "freightAmount": 7.00, "stockQuantity": 110, "shopName": "华东医药商城"},
+        {"platform": "一药城", "priceCurrent": 40.00, "freightAmount": 0, "stockQuantity": 330, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 33.00, "freightAmount": 6.00, "stockQuantity": 250, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "维生素D滴剂",
+      "commonName": "维生素D3",
+      "specification": "400IU×30粒",
+      "manufacturer": "青岛双鲸药业",
+      "approvalNumber": "国药准字H20030044",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 28.00, "freightAmount": 0, "stockQuantity": 380, "shopName": "双鲸药业官方店"},
+        {"platform": "药交换", "priceCurrent": 24.50, "freightAmount": 5.00, "stockQuantity": 220, "shopName": "青岛医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 30.00, "freightAmount": 0, "stockQuantity": 300, "shopName": "双鲸药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 22.00, "freightAmount": 7.00, "stockQuantity": 120, "shopName": "山东医药商城"},
+        {"platform": "一药城", "priceCurrent": 32.00, "freightAmount": 0, "stockQuantity": 350, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 26.00, "freightAmount": 6.00, "stockQuantity": 270, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "维生素E软胶囊",
+      "commonName": "维生素E",
+      "specification": "100mg×30粒",
+      "manufacturer": "浙江医药集团",
+      "approvalNumber": "国药准字H33020045",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 18.00, "freightAmount": 0, "stockQuantity": 400, "shopName": "浙江医药官方店"},
+        {"platform": "药交换", "priceCurrent": 15.50, "freightAmount": 5.00, "stockQuantity": 240, "shopName": "杭州医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 19.50, "freightAmount": 0, "stockQuantity": 320, "shopName": "浙药集团专营"},
+        {"platform": "药帮忙", "priceCurrent": 14.00, "freightAmount": 6.00, "stockQuantity": 140, "shopName": "浙江医药商城"},
+        {"platform": "一药城", "priceCurrent": 20.50, "freightAmount": 0, "stockQuantity": 370, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 16.50, "freightAmount": 5.00, "stockQuantity": 290, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "叶酸片",
+      "commonName": "叶酸",
+      "specification": "400mcg×60片",
+      "manufacturer": "北京斯利安药业",
+      "approvalNumber": "国药准字H10970046",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 12.00, "freightAmount": 0, "stockQuantity": 450, "shopName": "斯利安官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 10.50, "freightAmount": 5.00, "stockQuantity": 280, "shopName": "北京医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 13.00, "freightAmount": 0, "stockQuantity": 370, "shopName": "斯利安药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 9.00, "freightAmount": 6.00, "stockQuantity": 170, "shopName": "华北医药商城"},
+        {"platform": "一药城", "priceCurrent": 14.00, "freightAmount": 0, "stockQuantity": 430, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 11.00, "freightAmount": 5.00, "stockQuantity": 320, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "红霉素软膏",
+      "commonName": "红霉素",
+      "specification": "10g:100mg",
+      "manufacturer": "上海通用药业",
+      "approvalNumber": "国药准字H31020047",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 3.50, "freightAmount": 0, "stockQuantity": 700, "shopName": "上药通用官方店"},
+        {"platform": "药交换", "priceCurrent": 2.80, "freightAmount": 5.00, "stockQuantity": 500, "shopName": "上海医药批发"},
+        {"platform": "熊猫药药", "priceCurrent": 4.00, "freightAmount": 0, "stockQuantity": 600, "shopName": "通用药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 2.50, "freightAmount": 5.00, "stockQuantity": 300, "shopName": "沪上药品商城"},
+        {"platform": "一药城", "priceCurrent": 4.50, "freightAmount": 0, "stockQuantity": 650, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 3.00, "freightAmount": 5.00, "stockQuantity": 480, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "莫匹罗星软膏",
+      "commonName": "莫匹罗星",
+      "specification": "5g:100mg",
+      "manufacturer": "中美史克制药",
+      "approvalNumber": "国药准字H10910048",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 18.00, "freightAmount": 0, "stockQuantity": 350, "shopName": "中美史克官方店"},
+        {"platform": "药交换", "priceCurrent": 15.50, "freightAmount": 5.00, "stockQuantity": 200, "shopName": "天津医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 19.50, "freightAmount": 0, "stockQuantity": 280, "shopName": "史克药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 14.00, "freightAmount": 6.00, "stockQuantity": 110, "shopName": "华北医药商城"},
+        {"platform": "一药城", "priceCurrent": 20.50, "freightAmount": 0, "stockQuantity": 330, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 16.50, "freightAmount": 5.00, "stockQuantity": 250, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "碘伏消毒液",
+      "commonName": "碘伏",
+      "specification": "100ml/瓶",
+      "manufacturer": "山东利尔康",
+      "approvalNumber": "国药准字H37020049",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 5.00, "freightAmount": 0, "stockQuantity": 650, "shopName": "利尔康官方店"},
+        {"platform": "药交换", "priceCurrent": 4.20, "freightAmount": 5.00, "stockQuantity": 400, "shopName": "山东医药批发站"},
+        {"platform": "熊猫药药", "priceCurrent": 5.50, "freightAmount": 0, "stockQuantity": 520, "shopName": "利尔康专营"},
+        {"platform": "药帮忙", "priceCurrent": 3.80, "freightAmount": 5.00, "stockQuantity": 250, "shopName": "齐鲁医药商城"},
+        {"platform": "一药城", "priceCurrent": 6.00, "freightAmount": 0, "stockQuantity": 580, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 4.50, "freightAmount": 5.00, "stockQuantity": 430, "shopName": "明和药业旗舰店"}
+      ]
+    },
+    {
+      "productName": "双氯芬酸二乙胺乳胶剂",
+      "commonName": "双氯芬酸二乙胺",
+      "specification": "20g/支",
+      "manufacturer": "北京诺华制药",
+      "approvalNumber": "国药准字H19990050",
+      "prices": [
+        {"platform": "药师帮", "priceCurrent": 28.00, "freightAmount": 0, "stockQuantity": 300, "shopName": "诺华官方旗舰店"},
+        {"platform": "药交换", "priceCurrent": 24.50, "freightAmount": 5.00, "stockQuantity": 180, "shopName": "北京医药供应站"},
+        {"platform": "熊猫药药", "priceCurrent": 30.00, "freightAmount": 0, "stockQuantity": 240, "shopName": "诺华药业专营"},
+        {"platform": "药帮忙", "priceCurrent": 22.00, "freightAmount": 7.00, "stockQuantity": 90, "shopName": "华北医药商城"},
+        {"platform": "一药城", "priceCurrent": 32.00, "freightAmount": 0, "stockQuantity": 280, "shopName": "一药城官方自营"},
+        {"platform": "明和药业", "priceCurrent": 26.00, "freightAmount": 6.00, "stockQuantity": 210, "shopName": "明和药业旗舰店"}
+      ]
+    }
+  ]
+}

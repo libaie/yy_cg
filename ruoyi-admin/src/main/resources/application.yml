@@ -72,7 +72,7 @@ spring:
     # redis 配置
     redis:
       # 地址
-      host: localhost
+      host: 127.0.0.1
       # 端口，默认为6379
       port: 6379
       # 数据库索引
@@ -145,3 +145,15 @@ xss:
   excludes: /system/notice
   # 匹配链接
   urlPatterns: /system/*,/monitor/*,/tool/*
+
+# 支付回调验签开关 — 正式环境必须设为 true
+payment:
+  verify:
+    enabled: false
+
+# AI 网关配置 (DeepSeek)
+ai:
+  deepseek:
+    api-key: ${DEEPSEEK_API_KEY:}
+    endpoint: https://api.deepseek.com/v1/chat/completions
+    model: deepseek-chat

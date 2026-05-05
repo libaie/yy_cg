@@ -155,7 +155,7 @@ public class PriceComparisonServiceImpl implements IPriceComparisonService {
         
         switch (activityType) {
             case "拼团":
-                return calculateGroupBuyPrice(basePrice, rules, orderQty);
+                return calculateGroupBuyPrice(basePrice, activityRules, orderQty);
             case "凑单":
             case "满减":
                 // 满减需要订单总金额，这里返回原价，由调用方处理

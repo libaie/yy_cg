@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyFieldMappingRuleMapper">
+
+    <resultMap type="YyFieldMappingRule" id="YyFieldMappingRuleResult">
+        <id property="id" column="id"/>
+        <result property="platformId" column="platform_id"/>
+        <result property="apiCode" column="api_code"/>
+        <result property="standardField" column="standard_field"/>
+        <result property="sourcePaths" column="source_paths"/>
+        <result property="transformType" column="transform_type"/>
+        <result property="transformConfig" column="transform_config"/>
+        <result property="valueMap" column="value_map"/>
+        <result property="isRequired" column="is_required"/>
+        <result property="defaultValue" column="default_value"/>
+        <result property="validation" column="validation"/>
+        <result property="sortOrder" column="sort_order"/>
+        <result property="isEnabled" column="is_enabled"/>
+    </resultMap>
+
+    <select id="selectByPlatformAndApi" resultMap="YyFieldMappingRuleResult">
+        SELECT * FROM yy_field_mapping_rule
+        WHERE platform_id = #{platformId}
+        <if test="apiCode != null">
+            AND api_code = #{apiCode}
+        </if>
+        <if test="apiCode == null">
+            AND api_code IS NULL
+        </if>
+        AND is_enabled = 1
+        ORDER BY sort_order
+    </select>
+
+    <select id="selectAll" parameterType="YyFieldMappingRule" resultMap="YyFieldMappingRuleResult">
+        SELECT * FROM yy_field_mapping_rule
+        <where>
+            <if test="platformId != null">AND platform_id = #{platformId}</if>
+            <if test="standardField != null">AND standard_field = #{standardField}</if>
+        </where>
+        ORDER BY platform_id, sort_order
+    </select>
+
+    <select id="selectById" parameterType="Long" resultMap="YyFieldMappingRuleResult">
+        SELECT * FROM yy_field_mapping_rule WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="YyFieldMappingRule" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO yy_field_mapping_rule
+        (platform_id, api_code, standard_field, source_paths, transform_type, transform_config, value_map, is_required, default_value, validation, sort_order, is_enabled)
+        VALUES
+        (#{platformId}, #{apiCode}, #{standardField}, #{sourcePaths}, #{transformType}, #{transformConfig}, #{valueMap}, #{isRequired}, #{defaultValue}, #{validation}, #{sortOrder}, #{isEnabled})
+    </insert>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO yy_field_mapping_rule
+        (platform_id, api_code, standard_field, source_paths, transform_type, transform_config, value_map, is_required, default_value, validation, sort_order, is_enabled)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.platformId}, #{item.apiCode}, #{item.standardField}, #{item.sourcePaths}, #{item.transformType}, #{item.transformConfig}, #{item.valueMap}, #{item.isRequired}, #{item.defaultValue}, #{item.validation}, #{item.sortOrder}, #{item.isEnabled})
+        </foreach>
+    </insert>
+
+    <update id="update" parameterType="YyFieldMappingRule">
+        UPDATE yy_field_mapping_rule
+        <set>
+            <if test="apiCode != null">api_code = #{apiCode},</if>
+            <if test="standardField != null">standard_field = #{standardField},</if>
+            <if test="sourcePaths != null">source_paths = #{sourcePaths},</if>
+            <if test="transformType != null">transform_type = #{transformType},</if>
+            <if test="transformConfig != null">transform_config = #{transformConfig},</if>
+            <if test="valueMap != null">value_map = #{valueMap},</if>
+            <if test="isRequired != null">is_required = #{isRequired},</if>
+            <if test="defaultValue != null">default_value = #{defaultValue},</if>
+            <if test="validation != null">validation = #{validation},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+            <if test="isEnabled != null">is_enabled = #{isEnabled},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="Long">
+        DELETE FROM yy_field_mapping_rule WHERE id = #{id}
+    </delete>
+</mapper>

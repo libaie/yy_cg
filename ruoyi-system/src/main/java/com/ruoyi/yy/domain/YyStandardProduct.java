@@ -179,12 +179,20 @@ public class YyStandardProduct extends BaseEntity {
     /** 融合键 */
     private String fusionKey;
 
+    // ========== 降级标记 ==========
+
+    /**
+     * 降级标记：true 表示该数据来自缓存回退而非实时采集。
+     * transient —— 不持久化到数据库，仅用于向前端传递信号。
+     */
+    private transient boolean degraded = false;
+
     // ========== 时间 ==========
-    
+
     /** 采集时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date collectedAt;
-    
+
     /** 同步时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date syncedAt;

@@ -1,15 +1,28 @@
 package com.ruoyi.yy.domain;
 
 import com.ruoyi.common.core.domain.BaseEntity;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 
 public class YyAiQuotaConfig extends BaseEntity {
     private static final long serialVersionUID = 1L;
 
+    @NotNull
     private Long id;
+
+    @NotNull @Min(0) @Max(3)
     private Integer tierLevel;
+
+    @Min(-1)
     private Integer dailyChatLimit;
+
+    @Min(-1)
     private Integer dailyToolLimit;
+
+    @Min(100)
     private Integer maxTokensPerReq;
+
     private Integer enabled;
 
     public Long getId() { return id; }

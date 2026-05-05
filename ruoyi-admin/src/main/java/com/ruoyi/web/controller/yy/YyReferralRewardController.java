@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ruoyi.yy.domain.YyReferralReward;
 import com.ruoyi.yy.service.IYyReferralRewardService;
 import com.ruoyi.common.core.controller.BaseController;
+import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 
 /**
@@ -32,7 +33,7 @@ public class YyReferralRewardController extends BaseController
 
     @PreAuthorize("@ss.hasPermi('yy:reward:query')")
     @GetMapping(value = "/{id}")
-    public YyReferralReward getInfo(@PathVariable("id") Long id) {
-        return yyReferralRewardService.selectYyReferralRewardById(id);
+    public AjaxResult getInfo(@PathVariable("id") Long id) {
+        return success(yyReferralRewardService.selectYyReferralRewardById(id));
     }
 }

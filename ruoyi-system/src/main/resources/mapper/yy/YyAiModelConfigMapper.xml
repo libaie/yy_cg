@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyAiModelConfigMapper">
+
+    <resultMap type="YyAiModelConfig" id="YyAiModelConfigResult">
+        <id property="id" column="id"/>
+        <result property="modelCode" column="model_code"/>
+        <result property="modelName" column="model_name"/>
+        <result property="provider" column="provider"/>
+        <result property="endpoint" column="endpoint"/>
+        <result property="apiKey" column="api_key"/>
+        <result property="capabilities" column="capabilities"/>
+        <result property="isMultimodal" column="is_multimodal"/>
+        <result property="maxTokens" column="max_tokens"/>
+        <result property="isEnabled" column="is_enabled"/>
+        <result property="sortOrder" column="sort_order"/>
+    </resultMap>
+
+    <select id="selectEnabled" resultMap="YyAiModelConfigResult">
+        SELECT * FROM yy_ai_model_config WHERE is_enabled = 1 ORDER BY sort_order
+    </select>
+
+    <select id="selectByModelCode" parameterType="String" resultMap="YyAiModelConfigResult">
+        SELECT * FROM yy_ai_model_config WHERE model_code = #{modelCode} AND is_enabled = 1
+    </select>
+
+    <select id="selectAll" resultMap="YyAiModelConfigResult">
+        SELECT * FROM yy_ai_model_config ORDER BY sort_order
+    </select>
+
+    <select id="selectById" parameterType="Long" resultMap="YyAiModelConfigResult">
+        SELECT * FROM yy_ai_model_config WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="YyAiModelConfig" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO yy_ai_model_config (model_code, model_name, provider, endpoint, api_key, capabilities, is_multimodal, max_tokens, is_enabled, sort_order)
+        VALUES (#{modelCode}, #{modelName}, #{provider}, #{endpoint}, #{apiKey}, #{capabilities}, #{isMultimodal}, #{maxTokens}, #{isEnabled}, #{sortOrder})
+    </insert>
+
+    <update id="updateById" parameterType="YyAiModelConfig">
+        UPDATE yy_ai_model_config
+        <set>
+            <if test="modelCode != null">model_code = #{modelCode},</if>
+            <if test="modelName != null">model_name = #{modelName},</if>
+            <if test="provider != null">provider = #{provider},</if>
+            <if test="endpoint != null">endpoint = #{endpoint},</if>
+            <if test="apiKey != null">api_key = #{apiKey},</if>
+            <if test="capabilities != null">capabilities = #{capabilities},</if>
+            <if test="isMultimodal != null">is_multimodal = #{isMultimodal},</if>
+            <if test="maxTokens != null">max_tokens = #{maxTokens},</if>
+            <if test="isEnabled != null">is_enabled = #{isEnabled},</if>
+            <if test="sortOrder != null">sort_order = #{sortOrder},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById" parameterType="Long">
+        DELETE FROM yy_ai_model_config WHERE id = #{id}
+    </delete>
+</mapper>

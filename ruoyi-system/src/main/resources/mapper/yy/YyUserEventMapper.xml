@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyUserEventMapper">
+
+    <resultMap type="YyUserEvent" id="YyUserEventResult">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="eventType" column="event_type"/>
+        <result property="eventData" column="event_data"/>
+        <result property="sessionId" column="session_id"/>
+        <result property="ip" column="ip"/>
+        <result property="userAgent" column="user_agent"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="YyUserEvent" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO yy_user_event
+        (user_id, event_type, event_data, session_id, ip, user_agent)
+        VALUES
+        (#{userId}, #{eventType}, #{eventData}, #{sessionId}, #{ip}, #{userAgent})
+    </insert>
+
+    <select id="selectByUserId" resultMap="YyUserEventResult">
+        SELECT * FROM yy_user_event
+        WHERE user_id = #{userId}
+        <if test="startTime != null">
+            AND created_at <![CDATA[ >= ]]> #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at <![CDATA[ <= ]]> #{endTime}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="countByEventType" resultType="int">
+        SELECT COUNT(*) FROM yy_user_event
+        WHERE event_type = #{eventType}
+        <if test="startTime != null">
+            AND created_at <![CDATA[ >= ]]> #{startTime}
+        </if>
+        <if test="endTime != null">
+            AND created_at <![CDATA[ <= ]]> #{endTime}
+        </if>
+    </select>
+
+</mapper>

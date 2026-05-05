@@ -19,15 +19,12 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * AI统一网关 -- 封装通义千问API调用
+ * AI统一网关 — DeepSeek API
  */
 @Service
 public class YyAiGatewayImpl implements IYyAiGateway {
@@ -44,11 +41,34 @@ public class YyAiGatewayImpl implements IYyAiGateway {
     @Autowired(required = false)
     private StringRedisTemplate redisTemplate;
 
-    @Value("${ai.dashscope.api-key:}")
-    private String apiKey;
+    @Autowired(required = false)
+    private com.ruoyi.yy.mapper.YyAiModelConfigMapper modelConfigMapper;
 
-    @Value("${ai.dashscope.endpoint:https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation}")
-    private String endpoint;
+    @Value("${ai.deepseek.api-key:}")
+    private String defaultApiKey;
+
+    @Value("${ai.deepseek.endpoint:https://api.deepseek.com/v1/chat/completions}")
+    private String defaultEndpoint;
+
+    @Value("${ai.deepseek.model:deepseek-chat}")
+    private String defaultModel;
+
+    /** 根据 modelCode 动态获取模型配置，无配置时回退到 application.yml */
+    private ModelConfig resolveModel(String modelCode) {
+        if (modelConfigMapper != null && modelCode != null) {
+            com.ruoyi.yy.domain.YyAiModelConfig cfg = modelConfigMapper.selectByModelCode(modelCode);
+            if (cfg != null && cfg.getIsEnabled() != null && cfg.getIsEnabled() == 1) {
+                return new ModelConfig(
+                    cfg.getEndpoint() != null ? cfg.getEndpoint() : defaultEndpoint,
+                    cfg.getApiKey() != null ? cfg.getApiKey() : defaultApiKey,
+                    cfg.getModelCode()
+                );
+            }
+        }
+        return new ModelConfig(defaultEndpoint, defaultApiKey, modelCode != null ? modelCode : defaultModel);
+    }
+
+    private record ModelConfig(String endpoint, String apiKey, String model) {}
 
     @Override
     public YyAiResponse call(YyAiRequest request) {
@@ -63,25 +83,24 @@ public class YyAiGatewayImpl implements IYyAiGateway {
                         System.currentTimeMillis() - startTime);
                 }
             } catch (Exception e) {
-                log.warn("Redis cache read failed", e);
+                log.warn("Redis read failed", e);
             }
         }
 
         if (!circuitBreaker.allowRequest()) {
-            log.warn("Circuit breaker OPEN, skipping AI call for scene={}", request.getScene());
-            return YyAiResponse.fail("Circuit breaker open, AI service temporarily unavailable");
+            log.warn("Circuit OPEN, scene={}", request.getScene());
+            return YyAiResponse.fail("AI服务暂时不可用，请稍后重试");
         }
 
         try {
-            YyAiResponse response = callDashScope(request);
+            YyAiResponse response = callDeepSeek(request);
             if (response.isSuccess()) {
                 circuitBreaker.recordSuccess();
                 if (redisTemplate != null) {
                     try {
-                        redisTemplate.opsForValue().set(cacheKey, response.getContent(),
-                            24, TimeUnit.HOURS);
+                        redisTemplate.opsForValue().set(cacheKey, response.getContent(), 24, TimeUnit.HOURS);
                     } catch (Exception e) {
-                        log.warn("Redis cache write failed", e);
+                        log.warn("Redis write failed", e);
                     }
                 }
             } else {
@@ -90,43 +109,44 @@ public class YyAiGatewayImpl implements IYyAiGateway {
             return response;
         } catch (Exception e) {
             circuitBreaker.recordFailure();
-            log.error("AI call failed for scene={}", request.getScene(), e);
-            return YyAiResponse.fail(e.getMessage());
+            log.error("DeepSeek call failed scene={}", request.getScene(), e);
+            return YyAiResponse.fail("AI服务调用失败，请稍后重试");
         }
     }
 
     @Override
     public StreamResult callStreamResult(YyAiRequest request) {
         if (!circuitBreaker.allowRequest()) {
-            log.warn("Circuit breaker OPEN for stream, scene={}", request.getScene());
+            log.warn("Circuit OPEN for stream, scene={}", request.getScene());
             return new StreamResult(Collections.emptyIterator(), null);
         }
 
         AtomicBoolean cbRecorded = new AtomicBoolean(false);
 
         try {
+            ModelConfig mc = resolveModel(request.getModel());
             String systemMsg = request.getSystemPrompt() != null ? request.getSystemPrompt() : "";
             String userMsg = request.getUserPrompt() != null ? request.getUserPrompt() : "";
-            String requestBody = JSON.writeValueAsString(Map.of(
-                "model", request.getModel(),
-                "input", Map.of(
-                    "messages", new Object[]{
-                        Map.of("role", "system", "content", systemMsg),
-                        Map.of("role", "user", "content", userMsg)
-                    }
-                ),
-                "parameters", Map.of(
-                    "temperature", request.getTemperature(),
-                    "max_tokens", request.getMaxTokens(),
-                    "result_format", "message",
-                    "stream", true
-                )
-            ));
+
+            List<Map<String, String>> messages = new ArrayList<>();
+            if (!systemMsg.isEmpty()) {
+                messages.add(Map.of("role", "system", "content", systemMsg));
+            }
+            messages.add(Map.of("role", "user", "content", userMsg));
+
+            Map<String, Object> reqBody = new LinkedHashMap<>();
+            reqBody.put("model", mc.model());
+            reqBody.put("messages", messages);
+            reqBody.put("temperature", request.getTemperature());
+            reqBody.put("max_tokens", request.getMaxTokens());
+            reqBody.put("stream", true);
+
+            String requestBody = JSON.writeValueAsString(reqBody);
 
             HttpRequest httpReq = HttpRequest.newBuilder()
-                .uri(URI.create(endpoint))
+                .uri(URI.create(mc.endpoint()))
                 .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + apiKey)
+                .header("Authorization", "Bearer " + mc.apiKey())
                 .header("Accept", "text/event-stream")
                 .timeout(Duration.ofSeconds(60))
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody))
@@ -138,6 +158,7 @@ public class YyAiGatewayImpl implements IYyAiGateway {
             if (httpResponse.statusCode() != 200) {
                 if (cbRecorded.compareAndSet(false, true)) circuitBreaker.recordFailure();
                 httpResponse.body().close();
+                log.error("DeepSeek stream HTTP {}", httpResponse.statusCode());
                 return new StreamResult(Collections.emptyIterator(), null);
             }
 
@@ -149,11 +170,8 @@ public class YyAiGatewayImpl implements IYyAiGateway {
                 @Override public boolean hasNext() {
                     try {
                         boolean hasMore = tokenIterator.hasNext();
-                        if (!hasMore) {
-                            if (cbRecorded.compareAndSet(false, true)) {
-                                circuitBreaker.recordSuccess();
-                            }
-                        }
+                        if (!hasMore && cbRecorded.compareAndSet(false, true))
+                            circuitBreaker.recordSuccess();
                         return hasMore;
                     } catch (Exception e) {
                         if (cbRecorded.compareAndSet(false, true)) circuitBreaker.recordFailure();
@@ -177,32 +195,34 @@ public class YyAiGatewayImpl implements IYyAiGateway {
         }
     }
 
-    private YyAiResponse callDashScope(YyAiRequest request) {
+    // ---- private methods ----
+
+    private YyAiResponse callDeepSeek(YyAiRequest request) {
         long startTime = System.currentTimeMillis();
         try {
+            ModelConfig mc = resolveModel(request.getModel());
             String systemMsg = request.getSystemPrompt() != null ? request.getSystemPrompt() : "";
             String userMsg = request.getUserPrompt() != null ? request.getUserPrompt() : "";
-            String requestBody = JSON.writeValueAsString(Map.of(
-                "model", request.getModel(),
-                "input", Map.of(
-                    "messages", new Object[]{
-                        Map.of("role", "system", "content", systemMsg),
-                        Map.of("role", "user", "content", userMsg)
-                    }
-                ),
-                "parameters", Map.of(
-                    "temperature", request.getTemperature(),
-                    "max_tokens", request.getMaxTokens(),
-                    "result_format", "message"
-                )
-            ));
+
+            List<Map<String, String>> messages = new ArrayList<>();
+            if (!systemMsg.isEmpty()) {
+                messages.add(Map.of("role", "system", "content", systemMsg));
+            }
+            messages.add(Map.of("role", "user", "content", userMsg));
+
+            Map<String, Object> reqBody = new LinkedHashMap<>();
+            reqBody.put("model", mc.model());
+            reqBody.put("messages", messages);
+            reqBody.put("temperature", request.getTemperature());
+            reqBody.put("max_tokens", request.getMaxTokens());
+            reqBody.put("stream", false);
 
             HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(endpoint))
+                .uri(URI.create(mc.endpoint()))
                 .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + apiKey)
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .timeout(Duration.ofSeconds(10))
+                .header("Authorization", "Bearer " + mc.apiKey())
+                .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(reqBody)))
+                .timeout(Duration.ofSeconds(30))
                 .build();
 
             HttpResponse<String> httpResponse =
@@ -211,25 +231,24 @@ public class YyAiGatewayImpl implements IYyAiGateway {
             long latency = System.currentTimeMillis() - startTime;
 
             if (httpResponse.statusCode() != 200) {
-                return YyAiResponse.fail("HTTP " + httpResponse.statusCode() + ": " + httpResponse.body());
+                return YyAiResponse.fail("HTTP " + httpResponse.statusCode());
             }
 
             JsonNode root = JSON.readTree(httpResponse.body());
-            JsonNode output = root.path("output");
-            JsonNode choices = output.path("choices");
+            JsonNode choices = root.path("choices");
             if (choices.isArray() && choices.size() > 0) {
                 String content = choices.get(0).path("message").path("content").asText();
-                JsonNode usage = output.path("usage");
-                int promptTokens = usage.path("input_tokens").asInt(0);
-                int completionTokens = usage.path("output_tokens").asInt(0);
-                return YyAiResponse.ok(content, request.getModel(), promptTokens, completionTokens, latency);
+                JsonNode usage = root.path("usage");
+                int promptTokens = usage.path("prompt_tokens").asInt(0);
+                int completionTokens = usage.path("completion_tokens").asInt(0);
+                return YyAiResponse.ok(content, mc.model(), promptTokens, completionTokens, latency);
             }
 
-            return YyAiResponse.fail("Empty response from DashScope");
+            return YyAiResponse.fail("Empty response from AI");
         } catch (java.net.http.HttpTimeoutException e) {
-            return YyAiResponse.fail("AI call timeout after 10s");
+            return YyAiResponse.fail("AI调用超时");
         } catch (Exception e) {
-            return YyAiResponse.fail("AI call error: " + e.getMessage());
+            return YyAiResponse.fail("AI调用异常");
         }
     }
 
@@ -244,9 +263,7 @@ public class YyAiGatewayImpl implements IYyAiGateway {
             java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
             byte[] digest = md.digest((request.getScene() + "|" + request.getUserPrompt()).getBytes());
             StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < 8; i++) {
-                sb.append(String.format("%02x", digest[i]));
-            }
+            for (int i = 0; i < 8; i++) sb.append(String.format("%02x", digest[i]));
             return "ai:cache:" + request.getScene() + ":" + sb;
         } catch (Exception e) {
             return "ai:cache:" + request.getScene() + ":" + request.getUserPrompt().hashCode();
@@ -254,9 +271,9 @@ public class YyAiGatewayImpl implements IYyAiGateway {
     }
 
     /**
-     * Parse SSE data lines into tokens. Extracts text from "data:" lines,
-     * handles [DONE], and skips malformed lines.
-     * Package-private for testability.
+     * Parse DeepSeek SSE stream into tokens.
+     * Format: data: {"choices":[{"delta":{"content":"token"}}]}
+     *         data: [DONE]
      */
     static Iterator<String> parseSseTokens(Iterator<String> lineIterator) {
         return new Iterator<String>() {
@@ -271,20 +288,15 @@ public class YyAiGatewayImpl implements IYyAiGateway {
                     String line = lineIterator.next();
                     if (line.startsWith("data:")) {
                         String json = line.substring(5).trim();
-                        if ("[DONE]".equals(json)) {
-                            done = true;
-                            return false;
-                        }
+                        if ("[DONE]".equals(json)) { done = true; return false; }
                         try {
                             JsonNode node = JSON.readTree(json);
-                            String token = node.path("output").path("text").asText("");
-                            if (!token.isEmpty()) {
-                                nextToken = token;
-                                return true;
+                            JsonNode choices = node.path("choices");
+                            if (choices.isArray() && choices.size() > 0) {
+                                String token = choices.get(0).path("delta").path("content").asText("");
+                                if (!token.isEmpty()) { nextToken = token; return true; }
                             }
-                        } catch (Exception e) {
-                            // skip malformed line
-                        }
+                        } catch (Exception e) { /* skip malformed */ }
                     }
                 }
                 done = true;

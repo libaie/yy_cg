@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.yy.domain.YyAiRequest;
 import com.ruoyi.yy.domain.YyAiResponse;
+import com.ruoyi.yy.service.IYyAiRecommend;
 import com.ruoyi.yy.service.IYyAiGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service
-public class YyAiRecommendImpl {
+public class YyAiRecommendImpl implements IYyAiRecommend {
 
     private static final Logger log = LoggerFactory.getLogger(YyAiRecommendImpl.class);
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -31,7 +32,7 @@ public class YyAiRecommendImpl {
         request.setScene("recommend");
         request.setSystemPrompt(SYSTEM_PROMPT);
         request.setUserPrompt(userPrompt);
-        request.setModel("qwen-turbo");
+        request.setModel("deepseek-chat");
         request.setTemperature(0.5);
         request.setMaxTokens(800);
 

@@ -19,6 +19,7 @@ import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.file.FileUploadUtils;
 import com.ruoyi.common.utils.file.FileUtils;
 import com.ruoyi.framework.config.ServerConfig;
+import com.ruoyi.yy.config.OcrSecurityConfig;
 
 /**
  * 通用请求处理
@@ -33,6 +34,9 @@ public class CommonController
 
     @Autowired
     private ServerConfig serverConfig;
+
+    @Autowired
+    private OcrSecurityConfig ocrSecurityConfig;
 
     private static final String FILE_DELIMITER = ",";
 
@@ -72,14 +76,33 @@ public class CommonController
      * 通用上传请求（单个）
      */
     @PostMapping("/upload")
-    public AjaxResult uploadFile(MultipartFile file) throws Exception
+    public AjaxResult uploadFile(MultipartFile file, HttpServletRequest request) throws Exception
     {
         try
         {
+            boolean isOcr = request.getRequestURI().contains("/ocr/");
+
+            // OCR 上传安全校验
+            if (isOcr)
+            {
+                // 校验文件扩展名
+                if (!ocrSecurityConfig.isAllowed(file.getOriginalFilename()))
+                {
+                    return AjaxResult.error("不支持的文件格式，仅允许 JPG/PNG 图片");
+                }
+                // 校验文件大小
+                if (file.getSize() > ocrSecurityConfig.getMaxFileSize())
+                {
+                    return AjaxResult.error("文件大小超过 10MB 限制");
+                }
+            }
+
             // 上传文件路径
             String filePath = RuoYiConfig.getUploadPath();
-            // 上传并返回新文件名称
-            String fileName = FileUploadUtils.upload(filePath, file);
+            // 上传并返回新文件名称（OCR 上传使用 UUID 命名防路径穿越）
+            String fileName = isOcr
+                    ? FileUploadUtils.upload(filePath, file, ocrSecurityConfig.getAllowedExtensionsArray(), true)
+                    : FileUploadUtils.upload(filePath, file);
             String url = serverConfig.getUrl() + fileName;
             AjaxResult ajax = AjaxResult.success();
             ajax.put("url", url);

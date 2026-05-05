@@ -85,8 +85,4 @@ public class YyProductFusionGroup extends BaseEntity {
 
     public String getPlatformName() { return platformName; }
     public void setPlatformName(String platformName) { this.platformName = platformName; }
-    public void setGenericName(String commonName2) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setGenericName'");
-    }
 }

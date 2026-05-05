@@ -1,0 +1,12 @@
+DROP TABLE IF EXISTS yy_push_subscription;
+CREATE TABLE yy_push_subscription (
+  id BIGINT(20) NOT NULL AUTO_INCREMENT,
+  user_id BIGINT(20) NOT NULL,
+  endpoint TEXT NOT NULL,
+  p256dh VARCHAR(512) NOT NULL,
+  auth VARCHAR(256) NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  last_used_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_user_endpoint (user_id, endpoint(255))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Web Push Subscription';

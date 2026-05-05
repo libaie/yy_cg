@@ -47,7 +47,7 @@
         where sku_id = #{skuId}
           and source_platform = #{sourcePlatform}
           and customer_type = #{customerType}
-          and (valid_until is null or valid_until > now())
+          and (valid_until is null or <![CDATA[valid_until > now()]]>)
         order by collected_at desc
         limit 1
     </select>
@@ -71,7 +71,7 @@
             #{skuId}
         </foreach>
         and customer_type = #{customerType}
-        and (valid_until is null or valid_until > now())
+        and (valid_until is null or <![CDATA[valid_until > now()]]>)
         order by sku_id, source_platform, collected_at desc
     </select>
     
@@ -83,7 +83,7 @@
             from yy_price_comparison
             where sku_id = #{skuId}
               and customer_type = #{customerType}
-              and (valid_until is null or valid_until > now())
+              and (valid_until is null or <![CDATA[valid_until > now()]]>)
             group by sku_id, source_platform
         ) t2 on t1.id = t2.max_id
         order by 
@@ -172,7 +172,7 @@
         from yy_price_comparison
         where sku_id = #{skuId}
           and source_platform = #{platformCode}
-          and collected_at >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+          <![CDATA[and collected_at >= DATE_SUB(NOW(), INTERVAL #{days} DAY)]]>
         group by DATE(collected_at), source_platform
         order by date asc
     </select>
@@ -185,12 +185,12 @@
             avg(case when activity_price is not null then current_price - activity_price else 0 end) as avgSavedAmount
         from yy_price_comparison
         where customer_type = #{customerType}
-          and (valid_until is null or valid_until > now())
+          and (valid_until is null or <![CDATA[valid_until > now()]]>)
     </select>
     
     <delete id="deleteExpiredData">
         delete from yy_price_comparison 
-        where collected_at < DATE_SUB(NOW(), INTERVAL #{expireDays} DAY)
+        <![CDATA[where collected_at < DATE_SUB(NOW(), INTERVAL #{expireDays} DAY)]]>
     </delete>
     
 </mapper>

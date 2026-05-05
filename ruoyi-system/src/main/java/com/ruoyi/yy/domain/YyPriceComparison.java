@@ -84,4 +84,10 @@ public class YyPriceComparison {
     /** 同步时间 */
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date syncedAt;
+
+    /** 规格（非持久化，AI分析用） */
+    private transient String specification;
+
+    /** 厂家（非持久化，AI分析用） */
+    private transient String manufacturer;
 }

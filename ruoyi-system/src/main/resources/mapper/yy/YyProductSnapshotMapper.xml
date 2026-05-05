@@ -91,4 +91,11 @@
             #{skuId}
         </foreach>
     </select>
+
+    <select id="selectLatestByPlatform" resultMap="YyProductSnapshotResult">
+        SELECT * FROM yy_product_snapshot
+        WHERE source_platform = #{platform}
+        ORDER BY collected_at DESC
+        LIMIT #{limit}
+    </select>
 </mapper>

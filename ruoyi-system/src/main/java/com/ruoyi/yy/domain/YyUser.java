@@ -26,6 +26,7 @@ public class YyUser extends BaseEntity
     private String phone;
 
     /** 密码 */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private String password;
 
     /** 昵称 */

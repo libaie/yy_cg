@@ -33,4 +33,14 @@ public interface YyProductSnapshotMapper {
         @Param("platform") String platform,
         @Param("skuIds") List<String> skuIds
     );
+
+    /**
+     * 查询某平台最近采集的快照，用于降级回退。
+     * @param platform 平台 code
+     * @param limit 最大返回条数
+     */
+    List<YyProductSnapshot> selectLatestByPlatform(
+        @Param("platform") String platform,
+        @Param("limit") int limit
+    );
 }

@@ -1,28 +1,30 @@
-package com.ruoyi.yy.controller;
+package com.ruoyi.web.controller.yy;
 
+import com.alibaba.fastjson2.JSON;
 import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
+import com.ruoyi.yy.domain.YyAiQuotaConfig;
 import com.ruoyi.yy.domain.YyAiRequest;
-import com.ruoyi.yy.domain.YyMemberSubscription;
-import com.ruoyi.yy.domain.YyMemberTier;
-import com.ruoyi.yy.mapper.YyMemberSubscriptionMapper;
-import com.ruoyi.yy.mapper.YyMemberTierMapper;
-import com.ruoyi.yy.service.IYyAiGateway;
+import com.ruoyi.yy.domain.YyPriceComparison;
+import com.ruoyi.yy.domain.YyPurchaseAdvice;
+import com.ruoyi.yy.mapper.YyAiQuotaConfigMapper;
+import com.ruoyi.yy.service.*;
 import com.ruoyi.yy.service.impl.YyAiUsageService;
 import com.ruoyi.yy.service.impl.YyAiIntentRouter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import jakarta.annotation.PreDestroy;
+import jakarta.validation.Valid;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/yy/ai")
@@ -33,32 +35,14 @@ public class YyAiController extends BaseController {
     @Autowired private YyAiUsageService usageService;
     @Autowired private YyAiIntentRouter intentRouter;
     @Autowired private IYyAiGateway aiGateway;
-    @Autowired(required = false) private YyMemberSubscriptionMapper subscriptionMapper;
-    @Autowired(required = false) private YyMemberTierMapper tierMapper;
-    @Autowired private com.ruoyi.yy.service.impl.YyAiDrugQaImpl drugQa;
-    @Autowired private com.ruoyi.yy.service.impl.YyAiInsightImpl insightService;
-    @Autowired private com.ruoyi.yy.service.impl.YyAiRecommendImpl recommendService;
+    @Autowired private IYyUserTierService userTierService;
+    @Autowired private IYyAiAdvisor advisorService;
+    @Autowired private IYyAiDrugQa drugQa;
+    @Autowired private IYyAiInsight insightService;
+    @Autowired private IYyAiRecommend recommendService;
+    @Autowired @Qualifier("sseExecutor") private ExecutorService sseExecutor;
 
-    // 有界线程池：核心 4 线程，最大 16 线程，队列容量 64，拒绝策略 CallerRunsPolicy
-    private final ExecutorService sseExecutor = new ThreadPoolExecutor(
-        4, 16, 60L, TimeUnit.SECONDS,
-        new LinkedBlockingQueue<>(64),
-        new ThreadPoolExecutor.CallerRunsPolicy()
-    );
-
-    @PreDestroy
-    public void destroy() {
-        sseExecutor.shutdown();
-        try {
-            if (!sseExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
-                sseExecutor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            sseExecutor.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-    }
-
+    @PreAuthorize("@ss.hasPermi('yy:client:access')")
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chat(@RequestBody Map<String, Object> body) {
         Long userId = getUserId();
@@ -68,20 +52,21 @@ public class YyAiController extends BaseController {
             SseEmitter emitter = new SseEmitter();
             try {
                 emitter.send(SseEmitter.event()
-                    .data("{\"type\":\"error\",\"data\":\"今日对话次数已用完，升级会员解锁更多\"}"));
+                    .data(JSON.toJSONString(Map.of("type", "error", "data", "今日对话次数已用完，升级会员解锁更多"))));
             } catch (IOException ignored) {}
-            emitter.complete();
+            try { emitter.complete(); } catch (Exception ignored) {}
             return emitter;
         }
 
         String message = (String) body.getOrDefault("message", "");
+        String model = (String) body.getOrDefault("model", "deepseek-chat");
 
         SseEmitter emitter = new SseEmitter(60_000L);
         sseExecutor.submit(() -> {
             IYyAiGateway.StreamResult streamResult = null;
             try {
                 emitter.send(SseEmitter.event()
-                    .data("{\"type\":\"status\",\"data\":\"analyzing_intent\"}"));
+                    .data(JSON.toJSONString(Map.of("type", "status", "data", "analyzing_intent"))));
 
                 String intent = intentRouter.route(message);
                 String systemPrompt = buildSystemPrompt(intent);
@@ -91,7 +76,7 @@ public class YyAiController extends BaseController {
                 request.setScene("chat_" + intent.toLowerCase());
                 request.setSystemPrompt(systemPrompt);
                 request.setUserPrompt(message);
-                request.setModel("qwen-turbo");
+                request.setModel(model);
                 request.setTemperature(0.7);
                 request.setMaxTokens(maxTokens);
 
@@ -107,12 +92,12 @@ public class YyAiController extends BaseController {
                 while (tokens.hasNext()) {
                     String token = tokens.next();
                     emitter.send(SseEmitter.event()
-                        .data("{\"type\":\"token\",\"data\":\"" + escapeJson(token) + "\",\"intent\":\"" + intent + "\"}"));
+                        .data(JSON.toJSONString(Map.of("type", "token", "data", token, "intent", intent))));
                     tokenCount++;
                 }
 
                 emitter.send(SseEmitter.event()
-                    .data("{\"type\":\"done\",\"data\":\"\"}"));
+                    .data(JSON.toJSONString(Map.of("type", "done", "data", ""))));
                 usageService.recordUsage(userId, "chat", null, tokenCount);
 
             } catch (IOException e) {
@@ -121,36 +106,47 @@ public class YyAiController extends BaseController {
                 log.error("SSE chat error", e);
                 try {
                     emitter.send(SseEmitter.event()
-                        .data("{\"type\":\"error\",\"data\":\"" + escapeJson(e.getMessage()) + "\"}"));
+                        .data(JSON.toJSONString(Map.of("type", "error", "data", "AI服务暂时不可用，请稍后重试"))));
                 } catch (IOException ignored) {}
             } finally {
                 if (streamResult != null) streamResult.close();
-                emitter.complete();
+                try { emitter.complete(); } catch (Exception ignored) {}
             }
         });
 
         return emitter;
     }
 
+    @PreAuthorize("@ss.hasPermi('yy:client:access')")
     @PostMapping("/advisor")
     public AjaxResult advisor(@RequestBody Map<String, Object> body) {
         Long userId = getUserId();
         int tierLevel = getUserTierLevel(userId);
-        if (!usageService.checkQuota(userId, "tool", tierLevel)) {
-            return AjaxResult.error(429, "今日快捷功能次数已用完，升级会员解锁更多");
-        }
+        if (!usageService.checkQuota(userId, "tool", tierLevel))
+            return AjaxResult.error(429, "今日快捷功能次数已用完");
         String drugName = (String) body.getOrDefault("drugName", "");
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> raw = (List<Map<String, Object>>) body.getOrDefault("prices", Collections.emptyList());
+        List<YyPriceComparison> prices = raw.stream().map(m -> {
+            YyPriceComparison p = new YyPriceComparison();
+            p.setSourcePlatform((String) m.get("sourcePlatform"));
+            if (m.get("currentPrice") instanceof Number n) p.setCurrentPrice(BigDecimal.valueOf(n.doubleValue()));
+            if (m.get("freightAmount") instanceof Number n) p.setFreightAmount(BigDecimal.valueOf(n.doubleValue()));
+            if (m.get("stockQuantity") instanceof Number n) p.setStockQuantity(n.intValue());
+            return p;
+        }).collect(Collectors.toList());
+        String model = (String) body.getOrDefault("model", null);
+        YyPurchaseAdvice advice = model != null ? advisorService.getAdvice(drugName, prices, model) : advisorService.getAdvice(drugName, prices);
         usageService.recordUsage(userId, "tool", "advisor", 0);
-        return success("采购顾问功能已调用");
+        return success(advice);
     }
 
+    @PreAuthorize("@ss.hasPermi('yy:client:access')")
     @PostMapping("/insight")
     public AjaxResult insightApi(@RequestBody Map<String, Object> body) {
         Long userId = getUserId();
-        int tierLevel = getUserTierLevel(userId);
-        if (!usageService.checkQuota(userId, "tool", tierLevel)) {
-            return AjaxResult.error(429, "今日快捷功能次数已用完，升级会员解锁更多");
-        }
+        if (!usageService.checkQuota(userId, "tool", getUserTierLevel(userId)))
+            return AjaxResult.error(429, "今日快捷功能次数已用完");
         String drugName = (String) body.getOrDefault("drugName", "");
         String prices = body.getOrDefault("prices", "[]").toString();
         Map<String, Object> result = insightService.analyze(drugName, prices);
@@ -158,13 +154,12 @@ public class YyAiController extends BaseController {
         return success(result);
     }
 
+    @PreAuthorize("@ss.hasPermi('yy:client:access')")
     @PostMapping("/drug-qa")
     public AjaxResult drugQa(@RequestBody Map<String, Object> body) {
         Long userId = getUserId();
-        int tierLevel = getUserTierLevel(userId);
-        if (!usageService.checkQuota(userId, "tool", tierLevel)) {
-            return AjaxResult.error(429, "今日快捷功能次数已用完，升级会员解锁更多");
-        }
+        if (!usageService.checkQuota(userId, "tool", getUserTierLevel(userId)))
+            return AjaxResult.error(429, "今日快捷功能次数已用完");
         String question = (String) body.getOrDefault("question", "");
         String drugName = (String) body.getOrDefault("drugName", "");
         Map<String, Object> result = drugQa.ask(question, drugName);
@@ -172,13 +167,12 @@ public class YyAiController extends BaseController {
         return success(result);
     }
 
+    @PreAuthorize("@ss.hasPermi('yy:client:access')")
     @PostMapping("/recommend")
     public AjaxResult recommendApi(@RequestBody Map<String, Object> body) {
         Long userId = getUserId();
-        int tierLevel = getUserTierLevel(userId);
-        if (!usageService.checkQuota(userId, "tool", tierLevel)) {
-            return AjaxResult.error(429, "今日快捷功能次数已用完，升级会员解锁更多");
-        }
+        if (!usageService.checkQuota(userId, "tool", getUserTierLevel(userId)))
+            return AjaxResult.error(429, "今日快捷功能次数已用完");
         String category = (String) body.getOrDefault("category", "");
         int limit = body.containsKey("limit") ? ((Number) body.get("limit")).intValue() : 5;
         Map<String, Object> result = recommendService.recommend(category, limit);
@@ -186,25 +180,26 @@ public class YyAiController extends BaseController {
         return success(result);
     }
 
+    @PreAuthorize("@ss.hasPermi('yy:client:access')")
     @GetMapping("/usage")
     public AjaxResult usage() {
         Long userId = getUserId();
-        int tierLevel = getUserTierLevel(userId);
-        return success(usageService.getTodayUsage(userId, tierLevel));
+        return success(usageService.getTodayUsage(userId, getUserTierLevel(userId)));
     }
 
-    // ===== 配额管理端点（管理端使用）=====
-
     @Autowired(required = false)
-    private com.ruoyi.yy.mapper.YyAiQuotaConfigMapper quotaConfigMapper;
+    private YyAiQuotaConfigMapper quotaConfigMapper;
 
+    
     @GetMapping("/ai-quota/list")
+    @PreAuthorize("@ss.hasPermi('yy:admin:ai:quota')")
     public AjaxResult quotaList() {
         if (quotaConfigMapper == null) return error("配额服务未初始化");
         return success(quotaConfigMapper.selectAll());
     }
 
     @GetMapping("/ai-quota/{id}")
+    @PreAuthorize("@ss.hasPermi('yy:admin:ai:quota')")
     public AjaxResult quotaGet(@PathVariable Long id) {
         if (quotaConfigMapper == null) return error("配额服务未初始化");
         return success(quotaConfigMapper.selectAll().stream()
@@ -212,30 +207,14 @@ public class YyAiController extends BaseController {
     }
 
     @PutMapping("/ai-quota")
-    public AjaxResult quotaUpdate(@RequestBody com.ruoyi.yy.domain.YyAiQuotaConfig config) {
+    @PreAuthorize("@ss.hasPermi('yy:admin:ai:quota')")
+    public AjaxResult quotaUpdate(@Valid @RequestBody YyAiQuotaConfig config) {
         if (quotaConfigMapper == null) return error("配额服务未初始化");
         return toAjax(quotaConfigMapper.updateById(config));
     }
 
-    /**
-     * 获取用户会员等级
-     * YyUser → YyMemberSubscription → YyMemberTier.memberLevel
-     */
     int getUserTierLevel(Long userId) {
-        if (subscriptionMapper == null || tierMapper == null) return 0;
-        try {
-            YyMemberSubscription query = new YyMemberSubscription();
-            query.setUserId(userId);
-            query.setPayStatus(1);
-            List<YyMemberSubscription> subs = subscriptionMapper.selectYyMemberSubscriptionList(query);
-            if (subs == null || subs.isEmpty()) return 0;
-            YyMemberSubscription sub = subs.get(0);
-            YyMemberTier tier = tierMapper.selectYyMemberTierByTierId(sub.getTierId());
-            return tier != null ? tier.getMemberLevel() : 0;
-        } catch (Exception e) {
-            log.warn("Failed to get user tier level for userId={}", userId, e);
-            return 0;
-        }
+        return userTierService.getUserTierLevel(userId);
     }
 
     String buildSystemPrompt(String intent) {
@@ -254,14 +233,5 @@ public class YyAiController extends BaseController {
             case 2 -> 1200;
             default -> 800;
         };
-    }
-
-    static String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
     }
 }

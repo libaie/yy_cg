@@ -12,6 +12,7 @@ import com.ruoyi.yy.domain.YyProductSnapshot;
 import com.ruoyi.yy.domain.YyStandardProduct;
 import com.ruoyi.yy.dto.YyDataIngestDTO;
 import com.ruoyi.yy.mapper.YyProductSnapshotMapper;
+import com.ruoyi.yy.service.impl.YyPriceSnapshotServiceImpl;
 import com.ruoyi.yy.mapper.YyStandardProductMapper;
 import com.ruoyi.yy.service.IDataFusionService;
 import com.ruoyi.yy.service.IYyFieldMappingService;
@@ -67,6 +68,9 @@ public class DataFusionServiceImpl implements IDataFusionService {
 
     @Autowired
     private YyProductSnapshotMapper productSnapshotMapper;
+
+    @Autowired(required = false)
+    private YyPriceSnapshotServiceImpl priceSnapshotService;
 
     // ========== 标准字段名常量 ==========
     private static final String F_PRODUCT_ID = "product_id";
@@ -144,6 +148,20 @@ public class DataFusionServiceImpl implements IDataFusionService {
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> ingest(YyDataIngestDTO dto) {
         String platformCode = dto.getPlatformCode();
+
+        try {
+            return doIngest(dto, platformCode);
+        } catch (Exception e) {
+            log.warn("实时数据融合失败 platform={}: {}. 降级回退到历史缓存快照.", platformCode, e.getMessage());
+            log.debug("降级详细堆栈", e);
+            return degradedFallback(platformCode);
+        }
+    }
+
+    /**
+     * 核心融合处理逻辑（从 ingest 抽离，便于 try-catch 包裹）
+     */
+    private Map<String, Object> doIngest(YyDataIngestDTO dto, String platformCode) {
         String encryptedData = dto.getEncryptData();
         Integer dataEncryptType = dto.getDataEncryptType();
 
@@ -190,7 +208,7 @@ public class DataFusionServiceImpl implements IDataFusionService {
             if (isNewGroup) {
                 group = new YyProductFusionGroup();
                 group.setFusionKey(fusionKey);
-                group.setGenericName(product.getCommonName());
+                group.setCommonName(product.getCommonName());
                 group.setSpecification(product.getSpecification());
                 group.setManufacturer(product.getManufacturer());
                 group.setApprovalNumber(product.getApprovalNumber());
@@ -288,12 +306,62 @@ public class DataFusionServiceImpl implements IDataFusionService {
             }
         }
 
+        // ====== Step 6b: 双写价格历史（每个采集到的快照都写入时间序列） ======
+        if (priceSnapshotService != null) {
+            for (YyProductSnapshot snapshot : snapshots) {
+                priceSnapshotService.appendPriceHistory(snapshot);
+            }
+        }
+
         // ====== Step 7: 更新所有受影响的融合分组聚合 ======
         for (Long groupId : touchedGroupIds) {
             updateAggregation(groupId);
         }
 
         return buildResult(products.size(), touchedGroupIds.size(), newGroups, updatedGroups, "融合成功");
+    }
+
+    /**
+     * 降级回退：实时融合失败时，查询 yy_product_snapshot 历史缓存作为兜底数据。
+     * 返回标记 {@code degraded: true} 的结果，前端可据此展示"数据可能不是最新"的提示。
+     */
+    private Map<String, Object> degradedFallback(String platformCode) {
+        List<YyProductSnapshot> snapshots = productSnapshotMapper.selectLatestByPlatform(platformCode, 100);
+
+        if (snapshots.isEmpty()) {
+            return buildResult(0, 0, 0, 0, "平台数据获取失败，且无历史缓存可用");
+        }
+
+        // 将快照转为 StandardProduct 列表，标记 degraded=true
+        List<YyStandardProduct> degradedProducts = new ArrayList<>();
+        for (YyProductSnapshot snapshot : snapshots) {
+            YyStandardProduct p = new YyStandardProduct();
+            p.setSourcePlatform(snapshot.getSourcePlatform());
+            p.setSkuId(snapshot.getSkuId());
+            p.setProductId(snapshot.getProductId());
+            p.setSourceApi(snapshot.getSourceApi());
+            p.setCommonName(snapshot.getCommonName());
+            p.setBarcode(snapshot.getBarcode());
+            p.setApprovalNumber(snapshot.getApprovalNumber());
+            p.setManufacturer(snapshot.getManufacturer());
+            p.setSpecification(snapshot.getSpecification());
+            p.setPriceCurrent(snapshot.getPriceCurrent());
+            p.setStockQuantity(snapshot.getStockQuantity());
+            p.setCollectedAt(snapshot.getCollectedAt());
+            p.setDegraded(true);
+            degradedProducts.add(p);
+        }
+
+        Map<String, Object> result = buildResult(degradedProducts.size(), 0, 0, 0,
+            "实时采集失败(" + platformCode + ")，已回退到历史缓存数据");
+
+        // 附加降级元信息
+        result.put("degraded", true);
+        result.put("degradedSource", "yy_product_snapshot");
+        result.put("degradedProducts", degradedProducts);
+
+        log.info("降级回退完成 platform={}: 返回 {} 条缓存快照.", platformCode, degradedProducts.size());
+        return result;
     }
 
     @Override

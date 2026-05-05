@@ -132,5 +132,5 @@ public interface ISalesForecastService {
      * @param days 统计天数
      * @return 准确率统计
      */
-    Map<String, Object>> getForecastAccuracy(int days);
+    Map<String, Object> getForecastAccuracy(int days);
 }

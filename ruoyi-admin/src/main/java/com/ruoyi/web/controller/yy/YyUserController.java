@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -179,13 +180,22 @@ public class YyUserController extends BaseController
      * 接收支付宝第三方支付平台的异步通知 (正式环境使用)
      * 这里以支付宝为例，展示验签逻辑
      */
+    // 支付签名验证开关 — 正式环境必须设为 true，通过 application.yml 配置
+    @Value("${payment.verify.enabled:false}")
+    private boolean paymentVerifyEnabled;
+
     @Anonymous
     @Log(title = "支付宝回调", businessType = BusinessType.UPDATE)
     @PostMapping("/notify/alipay")
     public String handleAlipayNotify(HttpServletRequest request) {
+        if (!paymentVerifyEnabled) {
+            log.warn("[支付安全] 支付宝回调验签未启用，拒绝处理。订单不会自动升级。");
+            return "fail";
+        }
+
         // 1. 获取支付平台回传的所有参数
         Map<String, String> params = convertRequestParamsToMap(request);
-        
+
         // 2. 验签逻辑 (由于目前未引入 Alipay SDK，此处代码先注释掉)
         /*
         boolean signVerified = false;
@@ -195,48 +205,46 @@ public class YyUserController extends BaseController
         } catch (Exception e) {
             return "error";
         }
-        
+
         if (!signVerified) {
             return "fail"; // 验签失败
         }
         */
 
         // 3. 验证业务数据一致性
-        String orderNo = params.get("out_trade_no"); // 对应我们生成的 YY... 订单号
-        String transactionId = params.get("trade_no"); // 对应支付宝生成的流水号
-        String tradeStatus = params.get("trade_status"); // 对应交易状态
+        String orderNo = params.get("out_trade_no");
+        String transactionId = params.get("trade_no");
+        String tradeStatus = params.get("trade_status");
 
-        // 只有交易成功才执行业务升级
         if ("TRADE_SUCCESS".equals(tradeStatus) || "TRADE_FINISHED".equals(tradeStatus)) {
             int result = yyUserService.upgradeUserMember(orderNo, transactionId);
             return result > 0 ? "success" : "fail";
         }
 
-        return "success"; // 即使状态不符也返回success，防止支付宝重复推送
+        return "success";
     }
 
-    /**
-     * 接收微信支付第三方支付平台的异步通知 (正式环境使用)
-     */
     @Anonymous
     @Log(title = "微信回调", businessType = BusinessType.UPDATE)
     @PostMapping("/notify/wechat")
     public Map<String, String> handleWechatNotify(HttpServletRequest request) {
+        if (!paymentVerifyEnabled) {
+            log.warn("[支付安全] 微信回调验签未启用，拒绝处理。");
+            Map<String, String> resultMap = new HashMap<>();
+            resultMap.put("code", "FAIL");
+            resultMap.put("message", "Payment verification not enabled");
+            return resultMap;
+        }
+
         Map<String, String> resultMap = new HashMap<>();
-        
-        // 1. 验签与解密 (由于未引入 WeChat SDK，此处仅展示逻辑框架)
+
+        // 验签与解密 (由于未引入 WeChat SDK，此处仅展示逻辑框架)
         /*
         try {
-            // 微信 V3 采用 JSON 数据流，且通过 Header 传输签名
-            // String serial = request.getHeader("WechatPay2-Serial");
-            // String signature = request.getHeader("WechatPay2-Signature");
+            String serial = request.getHeader("WechatPay2-Serial");
+            String signature = request.getHeader("WechatPay2-Signature");
             // ... 使用官方 SDK 的 NotificationHandler 进行解密 ...
-            
-            // String orderNo = decryptData.get("out_trade_no");
-            // String transactionId = decryptData.get("transaction_id");
-            
             // yyUserService.upgradeUserMember(orderNo, transactionId);
-            
             resultMap.put("code", "SUCCESS");
             resultMap.put("message", "成功");
         } catch (Exception e) {
@@ -245,8 +253,8 @@ public class YyUserController extends BaseController
         }
         */
 
-        resultMap.put("code", "SUCCESS");
-        resultMap.put("message", "模拟回调成功");
+        resultMap.put("code", "FAIL");
+        resultMap.put("message", "Signature verification not yet implemented");
         return resultMap;
     }
 

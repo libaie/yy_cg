@@ -6,9 +6,9 @@
         <result property="id"                      column="id"                        />
         <result property="productId"               column="product_id"                />
         <result property="skuId"                   column="sku_id"                    />
-        <result property=\"sourcePlatform\"          column=\"source_platform\"           />
-        <result property=\"sourceApi\"              column=\"source_api\"               />
-        <result property=\"rawDataPayload\"          column=\"raw_data_payload\"          />
+        <result property="sourcePlatform"          column="source_platform"           />
+        <result property="sourceApi"              column="source_api"               />
+        <result property="rawDataPayload"          column="raw_data_payload"          />
         <result property="barcode"                 column="barcode"                   />
         <result property="productName"             column="product_name"              />
         <result property="commonName"              column="common_name"               />

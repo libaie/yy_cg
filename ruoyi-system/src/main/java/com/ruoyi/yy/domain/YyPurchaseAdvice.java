@@ -14,6 +14,8 @@ public class YyPurchaseAdvice {
     private BigDecimal bestPrice;
     private BigDecimal totalSaving;
     private List<String> tips;
+    private String dimensionAnalysis;
+    private List<String> riskWarnings;
     private Map<String, Object> detail;
 
     public String getSummary() { return summary; }
@@ -26,6 +28,10 @@ public class YyPurchaseAdvice {
     public void setTotalSaving(BigDecimal totalSaving) { this.totalSaving = totalSaving; }
     public List<String> getTips() { return tips; }
     public void setTips(List<String> tips) { this.tips = tips; }
+    public String getDimensionAnalysis() { return dimensionAnalysis; }
+    public void setDimensionAnalysis(String dimensionAnalysis) { this.dimensionAnalysis = dimensionAnalysis; }
+    public List<String> getRiskWarnings() { return riskWarnings; }
+    public void setRiskWarnings(List<String> riskWarnings) { this.riskWarnings = riskWarnings; }
     public Map<String, Object> getDetail() { return detail; }
     public void setDetail(Map<String, Object> detail) { this.detail = detail; }
 }

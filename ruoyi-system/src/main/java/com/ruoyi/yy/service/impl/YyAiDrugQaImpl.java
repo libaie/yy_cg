@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.yy.domain.YyAiRequest;
 import com.ruoyi.yy.domain.YyAiResponse;
+import com.ruoyi.yy.service.IYyAiDrugQa;
 import com.ruoyi.yy.service.IYyAiGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +13,7 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 
 @Service
-public class YyAiDrugQaImpl {
+public class YyAiDrugQaImpl implements IYyAiDrugQa {
 
     private static final Logger log = LoggerFactory.getLogger(YyAiDrugQaImpl.class);
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -35,7 +36,7 @@ public class YyAiDrugQaImpl {
         request.setScene("drug_qa");
         request.setSystemPrompt(SYSTEM_PROMPT);
         request.setUserPrompt(userPrompt);
-        request.setModel("qwen-turbo");
+        request.setModel("deepseek-chat");
         request.setTemperature(0.3);
         request.setMaxTokens(800);
 
