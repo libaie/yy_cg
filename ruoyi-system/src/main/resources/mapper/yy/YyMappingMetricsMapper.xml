@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.yy.mapper.YyMappingMetricsMapper">
+
+    <!--
+    DDL (run manually or via Liquibase/Flyway before first use):
+    CREATE TABLE IF NOT EXISTS yy_field_mapping_metrics (
+        id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+        platform_id     BIGINT       NOT NULL,
+        api_code        VARCHAR(64)  NOT NULL DEFAULT '',
+        standard_field  VARCHAR(128) NOT NULL,
+        total_attempts  BIGINT       NOT NULL DEFAULT 0,
+        success_count   BIGINT       NOT NULL DEFAULT 0,
+        null_count      BIGINT       NOT NULL DEFAULT 0,
+        transform_fail_count BIGINT  NOT NULL DEFAULT 0,
+        validation_fail_count BIGINT NOT NULL DEFAULT 0,
+        last_value_sample   VARCHAR(512) DEFAULT NULL,
+        last_error_sample   VARCHAR(512) DEFAULT NULL,
+        first_seen_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uk_platform_field (platform_id, api_code, standard_field)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    -->
+
+    <resultMap id="MetricsResult" type="java.util.HashMap">
+        <result column="platform_id"          property="platformId"/>
+        <result column="api_code"             property="apiCode"/>
+        <result column="standard_field"       property="standardField"/>
+        <result column="total_attempts"       property="totalAttempts"/>
+        <result column="success_count"        property="successCount"/>
+        <result column="null_count"           property="nullCount"/>
+        <result column="transform_fail_count" property="transformFailCount"/>
+        <result column="validation_fail_count" property="validationFailCount"/>
+        <result column="last_value_sample"    property="lastValueSample"/>
+        <result column="last_error_sample"    property="lastErrorSample"/>
+    </resultMap>
+
+    <insert id="upsertMetrics">
+        INSERT INTO yy_field_mapping_metrics
+        (platform_id, api_code, standard_field, total_attempts,
+         success_count, null_count, transform_fail_count, validation_fail_count,
+         last_value_sample, last_error_sample, first_seen_at, last_updated_at)
+        VALUES
+        (#{platformId}, #{apiCode}, #{standardField}, #{totalAttempts},
+         #{successCount}, #{nullCount}, #{transformFailCount}, #{validationFailCount},
+         #{lastValueSample}, #{lastErrorSample}, NOW(), NOW())
+        ON DUPLICATE KEY UPDATE
+            total_attempts       = total_attempts + VALUES(total_attempts),
+            success_count        = success_count + VALUES(success_count),
+            null_count           = null_count + VALUES(null_count),
+            transform_fail_count = transform_fail_count + VALUES(transform_fail_count),
+            validation_fail_count = validation_fail_count + VALUES(validation_fail_count),
+            last_value_sample    = COALESCE(VALUES(last_value_sample), last_value_sample),
+            last_error_sample    = COALESCE(VALUES(last_error_sample), last_error_sample),
+            last_updated_at      = NOW()
+    </insert>
+
+    <select id="selectByPlatform" resultType="java.util.HashMap">
+        SELECT * FROM yy_field_mapping_metrics
+        WHERE platform_id = #{platformId}
+        ORDER BY (success_count / NULLIF(total_attempts, 0)) ASC, standard_field
+    </select>
+
+</mapper>
