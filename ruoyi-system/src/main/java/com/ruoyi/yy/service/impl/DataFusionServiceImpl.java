@@ -22,6 +22,7 @@ import com.ruoyi.yy.service.IYyProductFusionGroupService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +44,8 @@ import java.util.regex.Pattern;
  * 5. 入库 yy_standard_product（upsert）
  * 6. 更新 yy_product_fusion_group 聚合
  */
+@Deprecated
+@ConditionalOnProperty(name = "app.data-ingest.legacy-mode", havingValue = "true")
 @Service
 public class DataFusionServiceImpl implements IDataFusionService {
 
@@ -144,6 +147,7 @@ public class DataFusionServiceImpl implements IDataFusionService {
         F_PRODUCTION_DATE, F_EXPIRATION_DATE
     ));
 
+    @Deprecated
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> ingest(YyDataIngestDTO dto) {
@@ -161,6 +165,7 @@ public class DataFusionServiceImpl implements IDataFusionService {
     /**
      * 核心融合处理逻辑（从 ingest 抽离，便于 try-catch 包裹）
      */
+    @Deprecated
     private Map<String, Object> doIngest(YyDataIngestDTO dto, String platformCode) {
         String encryptedData = dto.getEncryptData();
         Integer dataEncryptType = dto.getDataEncryptType();
@@ -608,6 +613,7 @@ public class DataFusionServiceImpl implements IDataFusionService {
     /**
      * 将单个 JSON 对象按映射规则转为标准商品
      */
+    @Deprecated
     private YyStandardProduct mapItem(JSONObject item, Map<String, String> fieldMappings, YyPlatform platform) {
         YyStandardProduct product = new YyStandardProduct();
         product.setSourcePlatform(platform.getPlatformCode());
@@ -711,6 +717,7 @@ public class DataFusionServiceImpl implements IDataFusionService {
      */
     private static final Pattern TOKEN_PATTERN = Pattern.compile("(\\w+|\\[\\d+\\]|\\[\\*\\])");
 
+    @Deprecated
     private Object extractValue(JSONObject item, String fieldPath) {
         List<String> tokens = tokenize(fieldPath);
         if (tokens.isEmpty()) return null;
@@ -841,6 +848,7 @@ public class DataFusionServiceImpl implements IDataFusionService {
     /**
      * 设置标准字段值（自动类型转换）
      */
+    @Deprecated
     private void setStandardField(YyStandardProduct product, String fieldName, Object value) {
         if (value == null) return;
 
